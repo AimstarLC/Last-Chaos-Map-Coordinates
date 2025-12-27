@@ -1,4 +1,4 @@
-const VERSION = "100"; // bei Bedarf hochzählen
+const VERSION = "200";
 const statusEl = document.getElementById("status");
 
 function setStatus(msg, isError = false) {
@@ -111,7 +111,6 @@ function applyMap(mapObj) {
   xInput.min = 0; xInput.max = currentMap.size;
   yInput.min = 0; yInput.max = currentMap.size;
 
-  // ✅ feste BaseURL über document.baseURI
   const imgUrl = new URL(`maps/${currentMap.file}`, document.baseURI).href + `?v=${VERSION}`;
   mapImg.src = imgUrl;
   mapImg.alt = currentMap.name;
@@ -119,7 +118,7 @@ function applyMap(mapObj) {
   setStatus(`Lade Bild: ${imgUrl}`);
 
   mapImg.onload = () => setStatus(`Bild geladen ✅ (${currentMap.name})`);
-  mapImg.onerror = () => setStatus(`Bild FEHLT ❌ (URL nicht erreichbar): ${imgUrl}`, true);
+  mapImg.onerror = () => setStatus(`Bild FEHLT ❌ URL nicht erreichbar: ${imgUrl}`, true);
 
   clearHoverUI();
 
