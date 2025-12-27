@@ -1,4 +1,18 @@
-const REPO_BASE = "/Last-Chaos-Map-Coordinates"; // <- dein Repo-Name (fix & stabil)
+const VERSION = "100"; // bei Bedarf hochzählen
+const statusEl = document.getElementById("status");
+
+function setStatus(msg, isError = false) {
+  if (!statusEl) return;
+  statusEl.textContent = "Status: " + msg;
+  statusEl.style.borderColor = isError ? "rgba(255,90,90,0.5)" : "rgba(255,255,255,0.10)";
+  statusEl.style.background = isError ? "rgba(255,90,90,0.10)" : "rgba(255,255,255,0.06)";
+}
+
+window.addEventListener("error", (e) => {
+  setStatus("JS-Fehler: " + (e?.message || "unknown"), true);
+});
+
+setStatus("JS geladen ✅");
 
 const xInput = document.getElementById("xInput");
 const yInput = document.getElementById("yInput");
@@ -23,9 +37,8 @@ const tabButtons = Array.from(document.querySelectorAll(".tab"));
 
 let maps = [];
 let currentMap = null;
-let markersByMap = {}; // { [id]: {x,y} }
+let markersByMap = {};
 
-// ---- helpers ----
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 function roundInt(n) { return Math.round(Number(n)); }
 
@@ -38,7 +51,6 @@ function clearHoverUI() {
   hoverText.textContent = "X: – | Y: –";
   hoverBadge.textContent = "X: – | Y: –";
 }
-
 function setMarkerUI(x, y) { markerText.textContent = `X: ${x} | Y: ${y}`; }
 function clearMarkerUI() { markerText.textContent = "–"; }
 
@@ -99,11 +111,15 @@ function applyMap(mapObj) {
   xInput.min = 0; xInput.max = currentMap.size;
   yInput.min = 0; yInput.max = currentMap.size;
 
-  // ✅ ABSOLUTER Bild-Pfad
-  mapImg.src = `${REPO_BASE}/maps/${currentMap.file}`;
+  // ✅ feste BaseURL über document.baseURI
+  const imgUrl = new URL(`maps/${currentMap.file}`, document.baseURI).href + `?v=${VERSION}`;
+  mapImg.src = imgUrl;
   mapImg.alt = currentMap.name;
 
-  mapImg.onerror = () => console.error("Bild konnte nicht geladen werden:", mapImg.src);
+  setStatus(`Lade Bild: ${imgUrl}`);
+
+  mapImg.onload = () => setStatus(`Bild geladen ✅ (${currentMap.name})`);
+  mapImg.onerror = () => setStatus(`Bild FEHLT ❌ (URL nicht erreichbar): ${imgUrl}`, true);
 
   clearHoverUI();
 
@@ -119,40 +135,45 @@ function applyMap(mapObj) {
   }
 }
 
-// ---- load maps ----
 async function loadMaps() {
-  const mapsUrl = `${REPO_BASE}/maps/maps.json`; // ✅ ABSOLUT
-  const res = await fetch(mapsUrl, { cache: "no-store" });
-  if (!res.ok) throw new Error("maps.json konnte nicht geladen werden: " + mapsUrl);
+  const jsonUrl = new URL("maps/maps.json", document.baseURI).href + `?v=${VERSION}`;
+  setStatus(`Lade maps.json: ${jsonUrl}`);
+
+  const res = await fetch(jsonUrl, { cache: "no-store" });
+  if (!res.ok) throw new Error("maps.json HTTP " + res.status);
 
   maps = await res.json();
+
   const juno = maps.find(m => m.id === "juno");
   applyMap(juno ?? maps[0]);
 }
 
-// ---- events ----
+// Tabs
 tabButtons.forEach(btn => {
   btn.addEventListener("click", () => {
+    if (!maps.length) {
+      setStatus("Maps noch nicht geladen (maps.json fehlte?)", true);
+      return;
+    }
     const id = btn.dataset.map;
     const m = maps.find(x => x.id === id);
     if (m) applyMap(m);
   });
 });
 
+// Hover + click marker
 mapImg.addEventListener("mousemove", (e) => {
   if (!currentMap) return;
   const { x, y, inside } = toMapCoords(e.clientX, e.clientY);
   if (!inside) return;
   setHoverUI(x, y);
 });
-
 mapImg.addEventListener("mouseleave", () => clearHoverUI());
 
 mapImg.addEventListener("click", (e) => {
   if (!currentMap) return;
   const { x, y, inside } = toMapCoords(e.clientX, e.clientY);
   if (!inside) return;
-
   placeMarker(x, y, true);
   xInput.value = x;
   yInput.value = y;
@@ -178,8 +199,8 @@ clearBtn.addEventListener("click", () => {
   });
 });
 
-// ---- start ----
+// Start
 loadMaps().catch(err => {
   console.error(err);
-  alert("Fehler beim Laden. Öffne F12 → Console und schau nach 404/URL.");
+  setStatus("Fehler beim Laden: " + (err?.message || err), true);
 });
