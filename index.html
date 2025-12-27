@@ -2,12 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
+  <base href="https://aimstarlc.github.io/Last-Chaos-Map-Coordinates/">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Last Chaos – Map Koordinaten</title>
 
-  <!-- ABSOLUTE Pfade (wichtig für GitHub Pages) -->
-  <link rel="stylesheet" href="/Last-Chaos-Map-Coordinates/styles.css" />
+  <!-- Cache-Busting damit du garantiert die neue Version siehst -->
+  <link rel="stylesheet" href="styles.css?v=100" />
 </head>
+
 <body>
   <div class="app">
     <header class="header">
@@ -57,6 +59,9 @@
             <div class="kv"><span>Marker</span><b id="markerText">–</b></div>
           </div>
 
+          <!-- NEU: Status / Debug -->
+          <div class="status" id="status">Status: (lädt…)</div>
+
           <div class="hint">
             Tipp: Du kannst auch auf die Map klicken. Dann wird der Marker gesetzt und X/Y werden automatisch übernommen.
           </div>
@@ -89,7 +94,7 @@
     </main>
   </div>
 
-  <!-- ABSOLUTER Pfad -->
-  <script src="/Last-Chaos-Map-Coordinates/app.js"></script>
+  <!-- Cache-Busting + defer -->
+  <script defer src="app.js?v=100"></script>
 </body>
 </html>
