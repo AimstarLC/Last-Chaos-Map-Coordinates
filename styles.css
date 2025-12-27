@@ -48,7 +48,7 @@ body{
   padding:10px 14px;
   border-radius:14px;
   cursor:pointer;
-  font-weight:700;
+  font-weight:800;
   transition: transform .06s ease, background .15s ease, border-color .15s ease;
 }
 .tab:hover{background:rgba(255,255,255,0.08);transform:translateY(-1px)}
@@ -101,7 +101,7 @@ body{
   background: rgba(255,255,255,0.06);
   color: var(--text);
   cursor:pointer;
-  font-weight:800;
+  font-weight:850;
 }
 .btn:hover{background:rgba(255,255,255,0.10)}
 .btn.primary{
@@ -157,14 +157,25 @@ body{
   user-select:none;
 }
 
-.badge{
+/* In-Game style coordinate HUD */
+.lcHud{
   position:absolute;
-  right:10px;top:10px;
-  padding:8px 10px;
-  border-radius:12px;
-  background: rgba(0,0,0,0.55);
-  border:1px solid rgba(255,255,255,0.10);
-  font-size:13px;
+  left:12px;
+  top:12px;
+  padding:4px 8px;
+  border-radius:4px;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid rgba(255,255,255,0.10);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 14px;
+  font-weight: 900;
+  color: #49ff5f;                 /* grün wie im Spiel */
+  letter-spacing: 0.2px;
+  text-shadow:
+    -1px -1px 0 rgba(0,0,0,0.95),
+     1px -1px 0 rgba(0,0,0,0.95),
+    -1px  1px 0 rgba(0,0,0,0.95),
+     1px  1px 0 rgba(0,0,0,0.95); /* Outline */
   pointer-events:none;
 }
 
@@ -192,3 +203,4 @@ body{
   font-size:13px;
   color: var(--muted);
 }
+
