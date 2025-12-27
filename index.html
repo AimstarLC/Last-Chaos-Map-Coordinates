@@ -146,11 +146,10 @@
       user-select:none;
     }
 
-    /* Last Chaos HUD Koordinaten */
+    /* In-Game HUD */
     .lcHud{
       position:absolute;
-      left:12px;
-      top:12px;
+      left:12px; top:12px;
       padding:4px 8px;
       border-radius:4px;
       background: rgba(0,0,0,0.65);
@@ -241,7 +240,7 @@
             Tipp: Klick auf die Map setzt den Marker und übernimmt X/Y automatisch.
           </div>
 
-          <div class="status" id="status">Status: Single-File Build gestartet…</div>
+          <div class="status" id="status">Status: lade…</div>
         </div>
       </aside>
 
@@ -252,8 +251,9 @@
             <div class="pill soft" id="pillSize">1500×1500</div>
           </div>
 
-          <div class="mapWrap">
-            <img id="mapImg" alt="Map" src="./maps/juno.png">
+          <div class="mapWrap" id="mapWrap">
+            <!-- Bild ist sichtbar, JS setzt nur source beim Wechsel -->
+            <img id="mapImg" alt="Map" src="./maps/juno.png" />
             <div class="lcHud" id="lcHud">—</div>
 
             <div class="marker" id="marker">
@@ -269,7 +269,7 @@
   </div>
 
   <script>
-    (function(){
+    (() => {
       const MAPS = [
         { id:"juno",   name:"Juno",   file:"./maps/juno.png",   size:1500 },
         { id:"dratan", name:"Dratan", file:"./maps/dratan.png", size:3000 },
@@ -285,6 +285,7 @@
       const setBtn = document.getElementById("setBtn");
       const clearBtn = document.getElementById("clearBtn");
 
+      const mapWrap = document.getElementById("mapWrap");
       const mapImg = document.getElementById("mapImg");
       const marker = document.getElementById("marker");
       const lcHud = document.getElementById("lcHud");
@@ -297,52 +298,83 @@
       const pillName = document.getElementById("pillName");
       const pillSize = document.getElementById("pillSize");
       const mapFooter = document.getElementById("mapFooter");
+
       const tabs = Array.from(document.querySelectorAll(".tab"));
 
       let current = MAPS[0];
-      const savedMarkers = {};
+      const savedMarkers = {}; // {mapId:{x,y}}
 
-      const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
-      const fmtGame = (x,y)=>`${x}, ${y}`;
+      const clamp = (n,min,max) => Math.max(min, Math.min(max, n));
+      const fmtGame = (x,y) => `${x}, ${y}`;
 
       function setActiveTab(id){
-        tabs.forEach(b=>b.classList.toggle("is-active", b.dataset.map===id));
+        tabs.forEach(b => b.classList.toggle("is-active", b.dataset.map === id));
       }
 
-      async function checkImageIsReallyImage(url){
-        try{
-          const res = await fetch(url, { cache:"no-store" });
-          const ct = (res.headers.get("content-type")||"").toLowerCase();
-          return ct.startsWith("image/");
-        }catch{ return false; }
+      // --- FIX: echtes gerendertes Bild innerhalb der mapWrap ("contain") ---
+      function getRenderedImageMetrics() {
+        const wrapRect = mapWrap.getBoundingClientRect();
+
+        const natW = mapImg.naturalWidth || 1;
+        const natH = mapImg.naturalHeight || 1;
+
+        const wrapW = wrapRect.width;
+        const wrapH = wrapRect.height;
+
+        const scale = Math.min(wrapW / natW, wrapH / natH);
+
+        const dispW = natW * scale;
+        const dispH = natH * scale;
+
+        const offX = (wrapW - dispW) / 2;
+        const offY = (wrapH - dispH) / 2;
+
+        return { wrapRect, dispW, dispH, offX, offY };
+      }
+
+      function toCoords(clientX, clientY){
+        const { wrapRect, dispW, dispH, offX, offY } = getRenderedImageMetrics();
+
+        const rx = clientX - wrapRect.left;
+        const ry = clientY - wrapRect.top;
+
+        const imgLeft = offX;
+        const imgTop  = offY;
+        const imgRight = offX + dispW;
+        const imgBottom= offY + dispH;
+
+        const inside = (rx >= imgLeft && ry >= imgTop && rx <= imgRight && ry <= imgBottom);
+        if (!inside) return { x:0, y:0, inside:false };
+
+        const nx = clamp((rx - imgLeft) / dispW, 0, 1);
+        const ny = clamp((ry - imgTop)  / dispH, 0, 1);
+
+        const x = Math.round(nx * current.size);
+        const y = Math.round(ny * current.size);
+        return { x, y, inside:true };
       }
 
       function placeMarker(x,y,save=true){
         const cx = clamp(Math.round(Number(x)), 0, current.size);
         const cy = clamp(Math.round(Number(y)), 0, current.size);
-        marker.style.left = `${(cx/current.size)*100}%`;
-        marker.style.top  = `${(cy/current.size)*100}%`;
+
+        const { dispW, dispH, offX, offY } = getRenderedImageMetrics();
+
+        const px = offX + (cx / current.size) * dispW;
+        const py = offY + (cy / current.size) * dispH;
+
+        marker.style.left = `${px}px`;
+        marker.style.top  = `${py}px`;
         marker.style.display = "block";
+
         uiMarker.textContent = `X: ${cx} | Y: ${cy}`;
         if(save) savedMarkers[current.id] = {x:cx,y:cy};
       }
 
       function clearMarker(save=true){
-        marker.style.display="none";
-        uiMarker.textContent="—";
+        marker.style.display = "none";
+        uiMarker.textContent = "—";
         if(save) delete savedMarkers[current.id];
-      }
-
-      function toCoords(clientX, clientY){
-        const r = mapImg.getBoundingClientRect();
-        const rx = clientX - r.left;
-        const ry = clientY - r.top;
-        const inside = rx>=0 && ry>=0 && rx<=r.width && ry<=r.height;
-        const nx = clamp(rx/r.width, 0, 1);
-        const ny = clamp(ry/r.height,0, 1);
-        const x = Math.round(nx*current.size);
-        const y = Math.round(ny*current.size);
-        return {x,y,inside};
       }
 
       function applyMap(m){
@@ -355,75 +387,96 @@
         pillSize.textContent = `${m.size}×${m.size}`;
         mapFooter.textContent = `0,0 oben links • ${m.size},${m.size} unten rechts`;
 
-        xInput.min=0; xInput.max=m.size;
-        yInput.min=0; yInput.max=m.size;
+        xInput.min = 0; xInput.max = m.size;
+        yInput.min = 0; yInput.max = m.size;
 
-        uiHover.textContent="—";
-        lcHud.textContent="—";
+        uiHover.textContent = "—";
+        lcHud.textContent = "—";
 
         const url = m.file + "?v=" + Date.now();
         setStatus(`lade Bild: ${url}`);
 
-        mapImg.onload = async () => {
-          const ok = await checkImageIsReallyImage(url);
-          if (!ok){
-            setStatus(`Bild lädt NICHT als Bild ❌ (oft Git-LFS Text). Öffne direkt: ${m.file}`);
-          } else {
-            setStatus(`Bild geladen ✅ (${m.name})`);
-          }
+        mapImg.onload = () => {
+          setStatus(`Bild geladen ✅ (${m.name})`);
+          const s = savedMarkers[m.id];
+          if (s) placeMarker(s.x, s.y, false);
         };
-        mapImg.onerror = () => setStatus(`Bild FEHLT ❌ (404/Name falsch). Öffne direkt: ${m.file}`);
+        mapImg.onerror = () => setStatus(`Bild FEHLT ❌ (Pfad/Name falsch): ${m.file}`);
 
         mapImg.src = url;
 
         const s = savedMarkers[m.id];
-        if(s){ xInput.value=s.x; yInput.value=s.y; placeMarker(s.x,s.y,false); }
-        else { xInput.value=""; yInput.value=""; clearMarker(false); }
+        if(s){
+          xInput.value = s.x;
+          yInput.value = s.y;
+        } else {
+          xInput.value = "";
+          yInput.value = "";
+          clearMarker(false);
+        }
       }
 
-      tabs.forEach(btn=>{
-        btn.addEventListener("click", ()=>{
+      // Tabs click
+      tabs.forEach(btn => {
+        btn.addEventListener("click", () => {
           const id = btn.dataset.map;
-          const m = MAPS.find(mm=>mm.id===id);
+          const m = MAPS.find(mm => mm.id === id);
           if(m) applyMap(m);
         });
       });
 
-      mapImg.addEventListener("mousemove", (e)=>{
+      // Hover / Click on wrap (nicht auf img), damit Offsets korrekt gelten
+      mapWrap.addEventListener("mousemove", (e) => {
         const {x,y,inside} = toCoords(e.clientX, e.clientY);
-        if(!inside) return;
+        if(!inside){
+          uiHover.textContent = "—";
+          lcHud.textContent = "—";
+          return;
+        }
         uiHover.textContent = `X: ${x} | Y: ${y}`;
         lcHud.textContent = fmtGame(x,y);
       });
 
-      mapImg.addEventListener("mouseleave", ()=>{
-        uiHover.textContent="—";
-        lcHud.textContent="—";
+      mapWrap.addEventListener("mouseleave", () => {
+        uiHover.textContent = "—";
+        lcHud.textContent = "—";
       });
 
-      mapImg.addEventListener("click", (e)=>{
+      mapWrap.addEventListener("click", (e) => {
         const {x,y,inside} = toCoords(e.clientX, e.clientY);
         if(!inside) return;
-        xInput.value=x; yInput.value=y;
+        xInput.value = x;
+        yInput.value = y;
         placeMarker(x,y,true);
       });
 
-      setBtn.addEventListener("click", ()=>{
-        const x=Number(xInput.value), y=Number(yInput.value);
+      // Manual set
+      setBtn.addEventListener("click", () => {
+        const x = Number(xInput.value);
+        const y = Number(yInput.value);
         if(!Number.isFinite(x) || !Number.isFinite(y)) return;
         placeMarker(x,y,true);
       });
 
-      clearBtn.addEventListener("click", ()=>{
+      clearBtn.addEventListener("click", () => {
         clearMarker(true);
-        xInput.value=""; yInput.value="";
+        xInput.value = "";
+        yInput.value = "";
       });
 
-      [xInput,yInput].forEach(inp=>{
-        inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter") setBtn.click(); });
+      [xInput,yInput].forEach(inp => {
+        inp.addEventListener("keydown", (e) => {
+          if(e.key === "Enter") setBtn.click();
+        });
       });
 
-      setStatus("JS läuft ✅ – initialisiere Juno…");
+      // bei Resize Marker nachziehen
+      window.addEventListener("resize", () => {
+        const s = savedMarkers[current.id];
+        if (s) placeMarker(s.x, s.y, false);
+      });
+
+      setStatus("JS läuft ✅ – initialisiere…");
       applyMap(MAPS[0]);
     })();
   </script>
