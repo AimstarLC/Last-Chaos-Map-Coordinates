@@ -23,11 +23,10 @@ let maps = [];
 let currentMap = null;           // {id,name,file,size}
 let markersByMap = {};           // { [id]: {x,y} }
 
-// ---------- helpers ----------
+// ---- helpers ----
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
-
 function roundInt(n) {
   return Math.round(Number(n));
 }
@@ -37,7 +36,6 @@ function setHoverUI(x, y) {
   hoverText.textContent = s;
   hoverBadge.textContent = s;
 }
-
 function clearHoverUI() {
   hoverText.textContent = "X: – | Y: –";
   hoverBadge.textContent = "X: – | Y: –";
@@ -46,7 +44,6 @@ function clearHoverUI() {
 function setMarkerUI(x, y) {
   markerText.textContent = `X: ${x} | Y: ${y}`;
 }
-
 function clearMarkerUI() {
   markerText.textContent = "–";
 }
@@ -64,7 +61,7 @@ function toMapCoords(clientX, clientY) {
   const x = Math.round(nx * size);
   const y = Math.round(ny * size);
 
-  return { x, y, nx, ny, inside };
+  return { x, y, inside };
 }
 
 function placeMarker(x, y, save = true) {
@@ -74,7 +71,6 @@ function placeMarker(x, y, save = true) {
   const cx = clamp(roundInt(x), 0, size);
   const cy = clamp(roundInt(y), 0, size);
 
-  // position in %
   marker.style.left = `${(cx / size) * 100}%`;
   marker.style.top  = `${(cy / size) * 100}%`;
   marker.style.display = "block";
@@ -99,10 +95,8 @@ function setActiveTab(mapId) {
 function applyMap(mapObj) {
   currentMap = mapObj;
 
-  // Tabs
   setActiveTab(currentMap.id);
 
-  // Update UI labels
   mapName.textContent = currentMap.name;
   chipMap.textContent = currentMap.name;
 
@@ -110,18 +104,18 @@ function applyMap(mapObj) {
   chipSize.textContent = `${currentMap.size}×${currentMap.size}`;
   footerRange.textContent = `${currentMap.size},${currentMap.size} unten rechts`;
 
-  // Update inputs range
   xInput.min = 0; xInput.max = currentMap.size;
   yInput.min = 0; yInput.max = currentMap.size;
 
-  // Load image
-  mapImg.src = `maps/${currentMap.file}`;
+  // --- GitHub Pages robust: URL relativ zur aktuellen BaseURI ---
+  mapImg.src = new URL(`maps/${currentMap.file}`, document.baseURI).href;
   mapImg.alt = currentMap.name;
 
-  // clear hover
+  // Debug falls Bild nicht lädt
+  mapImg.onerror = () => console.error("Bild konnte nicht geladen werden:", mapImg.src);
+
   clearHoverUI();
 
-  // restore marker for this map if exists
   const m = markersByMap[currentMap.id];
   if (m) {
     placeMarker(m.x, m.y, false);
@@ -134,19 +128,20 @@ function applyMap(mapObj) {
   }
 }
 
-// ---------- load maps ----------
+// ---- load maps ----
 async function loadMaps() {
-  // Lädt deine maps.json (GitHub Pages ok)
-  const res = await fetch("maps/maps.json", { cache: "no-store" });
-  if (!res.ok) throw new Error("maps.json konnte nicht geladen werden");
+  const mapsUrl = new URL("maps/maps.json", document.baseURI);
+  const res = await fetch(mapsUrl, { cache: "no-store" });
+  if (!res.ok) throw new Error("maps.json konnte nicht geladen werden: " + mapsUrl.href);
+
   maps = await res.json();
 
-  // Standard: Juno (falls nicht vorhanden, dann erste)
+  // Standard: Juno
   const juno = maps.find(m => m.id === "juno");
   applyMap(juno ?? maps[0]);
 }
 
-// ---------- events ----------
+// ---- events ----
 tabButtons.forEach(btn => {
   btn.addEventListener("click", () => {
     const id = btn.dataset.map;
@@ -171,7 +166,6 @@ mapImg.addEventListener("click", (e) => {
   const { x, y, inside } = toMapCoords(e.clientX, e.clientY);
   if (!inside) return;
 
-  // set marker + fill inputs
   placeMarker(x, y, true);
   xInput.value = x;
   yInput.value = y;
@@ -194,15 +188,14 @@ clearBtn.addEventListener("click", () => {
   yInput.value = "";
 });
 
-// Enter in inputs => mark
 [xInput, yInput].forEach(inp => {
   inp.addEventListener("keydown", (e) => {
     if (e.key === "Enter") markBtn.click();
   });
 });
 
-// ---------- start ----------
+// ---- start ----
 loadMaps().catch(err => {
   console.error(err);
-  alert("Fehler: maps/maps.json oder Pfade/Dateinamen stimmen nicht. Öffne die DevTools-Konsole für Details.");
+  alert("Fehler beim Laden. Öffne die DevTools-Konsole (F12) und schau nach 404/URL.");
 });
