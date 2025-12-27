@@ -1,23 +1,54 @@
-const mapSelect = document.getElementById("mapSelect");
-const mapImg = document.getElementById("mapImg");
-const mapWrap = document.getElementById("mapWrap");
-
-const hud = document.getElementById("hud");
-const hoverText = document.getElementById("hoverText");
-const markerText = document.getElementById("markerText");
-
 const xInput = document.getElementById("xInput");
 const yInput = document.getElementById("yInput");
 const markBtn = document.getElementById("markBtn");
 const clearBtn = document.getElementById("clearBtn");
+
+const mapImg = document.getElementById("mapImg");
 const marker = document.getElementById("marker");
 
-let maps = [];
-let currentMap = null; // {id,name,file,size}
-let currentMarker = null; // {x,y}
+const hoverText = document.getElementById("hoverText");
+const markerText = document.getElementById("markerText");
 
+const mapName = document.getElementById("mapName");
+const mapSizeText = document.getElementById("mapSizeText");
+
+const chipMap = document.getElementById("chipMap");
+const chipSize = document.getElementById("chipSize");
+const hoverBadge = document.getElementById("hoverBadge");
+const footerRange = document.getElementById("footerRange");
+
+const tabButtons = Array.from(document.querySelectorAll(".tab"));
+
+let maps = [];
+let currentMap = null;           // {id,name,file,size}
+let markersByMap = {};           // { [id]: {x,y} }
+
+// ---------- helpers ----------
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
+}
+
+function roundInt(n) {
+  return Math.round(Number(n));
+}
+
+function setHoverUI(x, y) {
+  const s = `X: ${x} | Y: ${y}`;
+  hoverText.textContent = s;
+  hoverBadge.textContent = s;
+}
+
+function clearHoverUI() {
+  hoverText.textContent = "X: – | Y: –";
+  hoverBadge.textContent = "X: – | Y: –";
+}
+
+function setMarkerUI(x, y) {
+  markerText.textContent = `X: ${x} | Y: ${y}`;
+}
+
+function clearMarkerUI() {
+  markerText.textContent = "–";
 }
 
 function toMapCoords(clientX, clientY) {
@@ -25,6 +56,7 @@ function toMapCoords(clientX, clientY) {
   const relX = clientX - rect.left;
   const relY = clientY - rect.top;
 
+  const inside = relX >= 0 && relY >= 0 && relX <= rect.width && relY <= rect.height;
   const nx = clamp(relX / rect.width, 0, 1);
   const ny = clamp(relY / rect.height, 0, 1);
 
@@ -32,94 +64,106 @@ function toMapCoords(clientX, clientY) {
   const x = Math.round(nx * size);
   const y = Math.round(ny * size);
 
-  return { x, y, nx, ny, inside: relX >= 0 && relY >= 0 && relX <= rect.width && relY <= rect.height };
+  return { x, y, nx, ny, inside };
 }
 
-function setHud(x, y) {
-  hud.innerHTML = `X: <b>${x}</b><br>Y: <b>${y}</b>`;
-  hoverText.textContent = `X: ${x} | Y: ${y}`;
-}
+function placeMarker(x, y, save = true) {
+  if (!currentMap) return;
+  const size = currentMap.size;
 
-function clearHud() {
-  hud.innerHTML = "X: –<br>Y: –";
-  hoverText.textContent = "X: – | Y: –";
-}
+  const cx = clamp(roundInt(x), 0, size);
+  const cy = clamp(roundInt(y), 0, size);
 
-function setMarker(x, y) {
-  const size = currentMap?.size ?? 1500;
-  const cx = clamp(x, 0, size);
-  const cy = clamp(y, 0, size);
-
-  const px = (cx / size) * 100;
-  const py = (cy / size) * 100;
-
-  marker.style.left = `${px}%`;
-  marker.style.top = `${py}%`;
+  // position in %
+  marker.style.left = `${(cx / size) * 100}%`;
+  marker.style.top  = `${(cy / size) * 100}%`;
   marker.style.display = "block";
 
-  currentMarker = { x: cx, y: cy };
-  markerText.textContent = `X: ${cx} | Y: ${cy}`;
+  setMarkerUI(cx, cy);
+
+  if (save) markersByMap[currentMap.id] = { x: cx, y: cy };
 }
 
-function clearMarker() {
+function hideMarker(save = true) {
   marker.style.display = "none";
-  currentMarker = null;
-  markerText.textContent = "–";
+  clearMarkerUI();
+  if (save && currentMap) delete markersByMap[currentMap.id];
+}
+
+function setActiveTab(mapId) {
+  tabButtons.forEach(btn => {
+    btn.classList.toggle("is-active", btn.dataset.map === mapId);
+  });
 }
 
 function applyMap(mapObj) {
   currentMap = mapObj;
 
-  // Update input ranges to map size
-  const size = currentMap?.size ?? 1500;
-  xInput.min = 0; xInput.max = size;
-  yInput.min = 0; yInput.max = size;
+  // Tabs
+  setActiveTab(currentMap.id);
+
+  // Update UI labels
+  mapName.textContent = currentMap.name;
+  chipMap.textContent = currentMap.name;
+
+  mapSizeText.textContent = `0–${currentMap.size}`;
+  chipSize.textContent = `${currentMap.size}×${currentMap.size}`;
+  footerRange.textContent = `${currentMap.size},${currentMap.size} unten rechts`;
+
+  // Update inputs range
+  xInput.min = 0; xInput.max = currentMap.size;
+  yInput.min = 0; yInput.max = currentMap.size;
 
   // Load image
   mapImg.src = `maps/${currentMap.file}`;
   mapImg.alt = currentMap.name;
 
-  // reset UI
-  clearHud();
-  clearMarker();
-  xInput.value = "";
-  yInput.value = "";
+  // clear hover
+  clearHoverUI();
+
+  // restore marker for this map if exists
+  const m = markersByMap[currentMap.id];
+  if (m) {
+    placeMarker(m.x, m.y, false);
+    xInput.value = m.x;
+    yInput.value = m.y;
+  } else {
+    hideMarker(false);
+    xInput.value = "";
+    yInput.value = "";
+  }
 }
 
+// ---------- load maps ----------
 async function loadMaps() {
+  // Lädt deine maps.json (GitHub Pages ok)
   const res = await fetch("maps/maps.json", { cache: "no-store" });
+  if (!res.ok) throw new Error("maps.json konnte nicht geladen werden");
   maps = await res.json();
 
-  mapSelect.innerHTML = "";
-  for (const m of maps) {
-    const opt = document.createElement("option");
-    opt.value = m.id;
-    opt.textContent = m.name;
-    mapSelect.appendChild(opt);
-  }
-
-  // Default: first map
-  if (maps.length > 0) {
-    applyMap(maps[0]);
-  }
+  // Standard: Juno (falls nicht vorhanden, dann erste)
+  const juno = maps.find(m => m.id === "juno");
+  applyMap(juno ?? maps[0]);
 }
 
-// Events
-mapSelect.addEventListener("change", () => {
-  const id = mapSelect.value;
-  const m = maps.find(x => x.id === id);
-  if (m) applyMap(m);
+// ---------- events ----------
+tabButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const id = btn.dataset.map;
+    const m = maps.find(x => x.id === id);
+    if (m) applyMap(m);
+  });
 });
 
 mapImg.addEventListener("mousemove", (e) => {
   if (!currentMap) return;
   const { x, y, inside } = toMapCoords(e.clientX, e.clientY);
   if (!inside) return;
-  setHud(x, y);
+  setHoverUI(x, y);
 });
 
 mapImg.addEventListener("mouseleave", () => {
-  clearHud();
+  clearHoverUI();
 });
 
 mapImg.addEventListener("click", (e) => {
@@ -128,25 +172,26 @@ mapImg.addEventListener("click", (e) => {
   if (!inside) return;
 
   // set marker + fill inputs
-  setMarker(x, y);
+  placeMarker(x, y, true);
   xInput.value = x;
   yInput.value = y;
 });
 
 markBtn.addEventListener("click", () => {
   if (!currentMap) return;
-  const size = currentMap.size ?? 1500;
 
   const x = Number(xInput.value);
   const y = Number(yInput.value);
 
   if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
-  setMarker(clamp(Math.round(x), 0, size), clamp(Math.round(y), 0, size));
+  placeMarker(x, y, true);
 });
 
 clearBtn.addEventListener("click", () => {
-  clearMarker();
+  hideMarker(true);
+  xInput.value = "";
+  yInput.value = "";
 });
 
 // Enter in inputs => mark
@@ -156,8 +201,8 @@ clearBtn.addEventListener("click", () => {
   });
 });
 
-// Start
+// ---------- start ----------
 loadMaps().catch(err => {
   console.error(err);
-  alert("Konnte maps/maps.json nicht laden. Prüfe Pfade & Webserver.");
+  alert("Fehler: maps/maps.json oder Pfade/Dateinamen stimmen nicht. Öffne die DevTools-Konsole für Details.");
 });
