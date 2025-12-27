@@ -33,11 +33,11 @@
           <div class="grid2">
             <label class="field">
               <span>X</span>
-              <input id="xInput" type="number" inputmode="numeric" placeholder="z.B. 420">
+              <input id="xInput" type="number" inputmode="numeric" placeholder="z.B. 1143">
             </label>
             <label class="field">
               <span>Y</span>
-              <input id="yInput" type="number" inputmode="numeric" placeholder="z.B. 900">
+              <input id="yInput" type="number" inputmode="numeric" placeholder="z.B. 951">
             </label>
           </div>
 
@@ -49,8 +49,8 @@
           <div class="kv">
             <div><span>Map</span><b id="uiMap">Juno</b></div>
             <div><span>Range</span><b id="uiRange">0–1500</b></div>
-            <div><span>Hover</span><b id="uiHover">X: – | Y: –</b></div>
-            <div><span>Marker</span><b id="uiMarker">–</b></div>
+            <div><span>Hover</span><b id="uiHover">—</b></div>
+            <div><span>Marker</span><b id="uiMarker">—</b></div>
           </div>
 
           <div class="hint">
@@ -70,7 +70,9 @@
 
           <div class="mapWrap" id="mapWrap">
             <img id="mapImg" alt="Map" />
-            <div class="badge" id="hoverBadge">X: – | Y: –</div>
+
+            <!-- In-Game HUD Style -->
+            <div class="lcHud" id="lcHud">—</div>
 
             <div class="marker" id="marker">
               <div class="mDot"></div>
