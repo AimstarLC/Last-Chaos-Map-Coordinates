@@ -3,47 +3,102 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Last Chaos Maps – Koordinaten</title>
+  <title>Last Chaos – Map Koordinaten</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">Last Chaos – Map Koordinaten</div>
-
-    <div class="controls">
-      <label>
-        Map:
-        <select id="mapSelect"></select>
-      </label>
-
-      <div class="coordInputs">
-        <label>X <input id="xInput" type="number" min="0" max="1500" step="1" /></label>
-        <label>Y <input id="yInput" type="number" min="0" max="1500" step="1" /></label>
-        <button id="markBtn" type="button">Markieren</button>
-        <button id="clearBtn" type="button" class="ghost">Marker löschen</button>
+  <div class="app">
+    <header class="header">
+      <div class="titleRow">
+        <div class="brand">
+          <div class="logoDot"></div>
+          <div>
+            <div class="brandTitle">Last Chaos – Map Koordinaten</div>
+            <div class="brandSub">Hover zeigt X/Y • Klick setzt Marker • Dratan: 3000×3000</div>
+          </div>
+        </div>
       </div>
 
-      <div class="readout">
-        <span>Hover:</span>
-        <span id="hoverText">X: – | Y: –</span>
-        <span class="sep">•</span>
-        <span>Marker:</span>
-        <span id="markerText">–</span>
-      </div>
-    </div>
-  </header>
+      <nav class="tabs" aria-label="Map Auswahl">
+        <button class="tab is-active" data-map="juno" type="button">Juno</button>
+        <button class="tab" data-map="dratan" type="button">Dratan</button>
+        <button class="tab" data-map="merak" type="button">Merak</button>
+        <button class="tab" data-map="egeha" type="button">Egeha</button>
+      </nav>
+    </header>
 
-  <main class="main">
-    <div class="mapWrap" id="mapWrap">
-      <img id="mapImg" alt="Map" />
-      <div class="hud" id="hud">X: –<br>Y: –</div>
-      <div class="marker" id="marker" title="Marker"></div>
-    </div>
+    <main class="content">
+      <aside class="panel">
+        <div class="panelCard">
+          <div class="panelTitle">Marker setzen</div>
 
-    <p class="hint">
-      Tipp: Maus über die Map = Koordinaten. Klick auf die Map setzt Marker und füllt X/Y.
-    </p>
-  </main>
+          <div class="row">
+            <label class="field">
+              <span>X</span>
+              <input id="xInput" type="number" inputmode="numeric" placeholder="z.B. 420" />
+            </label>
+            <label class="field">
+              <span>Y</span>
+              <input id="yInput" type="number" inputmode="numeric" placeholder="z.B. 900" />
+            </label>
+          </div>
+
+          <div class="row buttons">
+            <button id="markBtn" class="btn primary" type="button">Markieren</button>
+            <button id="clearBtn" class="btn" type="button">Marker löschen</button>
+          </div>
+
+          <div class="mini">
+            <div class="kv">
+              <span>Aktuelle Map</span>
+              <b id="mapName">Juno</b>
+            </div>
+            <div class="kv">
+              <span>Koordinatenbereich</span>
+              <b id="mapSizeText">0–1500</b>
+            </div>
+            <div class="kv">
+              <span>Hover</span>
+              <b id="hoverText">X: – | Y: –</b>
+            </div>
+            <div class="kv">
+              <span>Marker</span>
+              <b id="markerText">–</b>
+            </div>
+          </div>
+
+          <div class="hint">
+            Tipp: Du kannst auch auf die Map klicken. Dann wird der Marker gesetzt und X/Y werden automatisch übernommen.
+          </div>
+        </div>
+      </aside>
+
+      <section class="mapArea">
+        <div class="mapCard">
+          <div class="mapTopBar">
+            <div class="chip" id="chipMap">Juno</div>
+            <div class="chip subtle" id="chipSize">1500×1500</div>
+          </div>
+
+          <div class="mapWrap" id="mapWrap">
+            <img id="mapImg" alt="Map" />
+            <div class="hoverBadge" id="hoverBadge">X: – | Y: –</div>
+
+            <!-- Marker -->
+            <div class="marker" id="marker" title="Marker">
+              <div class="markerDot"></div>
+              <div class="markerRing"></div>
+            </div>
+          </div>
+
+          <div class="mapFooter">
+            <span>0,0 oben links •</span>
+            <span id="footerRange">1500,1500 unten rechts</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>
