@@ -1,0 +1,6 @@
+[
+  { "id": "juno",   "name": "Juno",   "file": "juno.png",   "size": 1500 },
+  { "id": "dratan", "name": "Dratan", "file": "dratan.png", "size": 3000 },
+  { "id": "merak",  "name": "Merak",  "file": "merak.png",  "size": 1500 },
+  { "id": "egeha",  "name": "Egeha",  "file": "egeha.png",  "size": 1500 }
+]
