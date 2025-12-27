@@ -1,3 +1,5 @@
+const REPO_BASE = "/Last-Chaos-Map-Coordinates"; // <- dein Repo-Name (fix & stabil)
+
 const xInput = document.getElementById("xInput");
 const yInput = document.getElementById("yInput");
 const markBtn = document.getElementById("markBtn");
@@ -22,15 +24,6 @@ const tabButtons = Array.from(document.querySelectorAll(".tab"));
 let maps = [];
 let currentMap = null;
 let markersByMap = {}; // { [id]: {x,y} }
-
-// ✅ Repo-Root zuverlässig bestimmen (funktioniert für GitHub Pages /<repo>/)
-function getRepoRootUrl() {
-  const parts = window.location.pathname.split("/").filter(Boolean);
-  // Auf GitHub Pages ist der 1. Path-Teil der Repo-Name: /Last-Chaos-Map-Coordinates/
-  const repo = parts.length >= 1 ? parts[0] : "";
-  return repo ? `${window.location.origin}/${repo}/` : `${window.location.origin}/`;
-}
-const REPO_ROOT = getRepoRootUrl();
 
 // ---- helpers ----
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
@@ -78,7 +71,6 @@ function placeMarker(x, y, save = true) {
   marker.style.display = "block";
 
   setMarkerUI(cx, cy);
-
   if (save) markersByMap[currentMap.id] = { x: cx, y: cy };
 }
 
@@ -107,8 +99,8 @@ function applyMap(mapObj) {
   xInput.min = 0; xInput.max = currentMap.size;
   yInput.min = 0; yInput.max = currentMap.size;
 
-  // ✅ Absoluter URL vom Repo-Root (kein Base/Relative Stress mehr)
-  mapImg.src = `${REPO_ROOT}maps/${currentMap.file}`;
+  // ✅ ABSOLUTER Bild-Pfad
+  mapImg.src = `${REPO_BASE}/maps/${currentMap.file}`;
   mapImg.alt = currentMap.name;
 
   mapImg.onerror = () => console.error("Bild konnte nicht geladen werden:", mapImg.src);
@@ -129,12 +121,11 @@ function applyMap(mapObj) {
 
 // ---- load maps ----
 async function loadMaps() {
-  const mapsUrl = `${REPO_ROOT}maps/maps.json`;
+  const mapsUrl = `${REPO_BASE}/maps/maps.json`; // ✅ ABSOLUT
   const res = await fetch(mapsUrl, { cache: "no-store" });
   if (!res.ok) throw new Error("maps.json konnte nicht geladen werden: " + mapsUrl);
 
   maps = await res.json();
-
   const juno = maps.find(m => m.id === "juno");
   applyMap(juno ?? maps[0]);
 }
