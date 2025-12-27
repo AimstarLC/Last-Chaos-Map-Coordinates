@@ -58,7 +58,7 @@
     .layout{
       margin-top:14px;
       display:grid;
-      grid-template-columns: 360px 1fr;
+      grid-template-columns: 380px 1fr;
       gap:14px;
     }
     @media (max-width: 980px){ .layout{grid-template-columns:1fr} }
@@ -71,7 +71,9 @@
       backdrop-filter: blur(10px);
     }
     .cardTitle{font-weight:850;margin-bottom:10px}
+
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
     .field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
     .field input{
       padding:11px 12px;
@@ -85,7 +87,8 @@
       border-color: rgba(124,92,255,0.60);
       box-shadow: 0 0 0 4px rgba(124,92,255,0.16);
     }
-    .btnRow{display:flex;gap:10px;margin-top:10px}
+
+    .btnRow{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
     .btn{
       flex:1;
       padding:11px 12px;
@@ -95,6 +98,7 @@
       color: var(--text);
       cursor:pointer;
       font-weight:850;
+      min-width: 140px;
     }
     .btn:hover{background:rgba(255,255,255,0.10)}
     .btn.primary{
@@ -102,9 +106,15 @@
       background: rgba(124,92,255,0.22);
     }
     .btn.primary:hover{background: rgba(124,92,255,0.28)}
+    .btn.danger{
+      border-color: rgba(255,90,90,0.45);
+      background: rgba(255,90,90,0.12);
+    }
+
     .kv{margin-top:12px;display:grid;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px}
     .kv > div{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
     .kv b{color:var(--text);font-weight:850}
+
     .hint{margin-top:12px;color:var(--muted);font-size:13px;line-height:1.35}
     .status{
       margin-top:12px;
@@ -116,6 +126,8 @@
       color: rgba(233,234,240,0.85);
       word-break: break-word;
     }
+
+    .sep{margin:14px 0;border-top:1px solid rgba(255,255,255,0.08)}
 
     .mapCard{padding:12px}
     .mapHeader{display:flex;gap:8px;align-items:center;margin-bottom:10px}
@@ -185,6 +197,29 @@
       border-radius:999px;
       border:2px solid rgba(255,77,109,0.7);
     }
+
+    .calibBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      color: rgba(233,234,240,0.85);
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      margin-top: 10px;
+    }
+    .dotSmall{
+      width:10px;height:10px;border-radius:999px;
+      background: rgba(255,90,90,0.9);
+      box-shadow: 0 0 0 4px rgba(255,90,90,0.12);
+    }
+    .dotSmall.ok{
+      background: rgba(73,255,95,0.95);
+      box-shadow: 0 0 0 4px rgba(73,255,95,0.14);
+    }
+
     .mapFooter{margin-top:10px;font-size:13px;color: var(--muted);}
   </style>
 </head>
@@ -196,7 +231,7 @@
         <div class="dot"></div>
         <div>
           <div class="title">Last Chaos – Map Koordinaten</div>
-          <div class="sub">Hover zeigt X/Y • Klick setzt Marker • Dratan: 3000×3000</div>
+          <div class="sub">Hover zeigt Ingame X/Y • Klick setzt Marker • Dratan: 3000×3000</div>
         </div>
       </div>
 
@@ -211,16 +246,16 @@
     <main class="layout">
       <aside class="panel">
         <div class="card">
-          <div class="cardTitle">Marker setzen</div>
+          <div class="cardTitle">Marker setzen (Ingame Koordinaten)</div>
 
           <div class="grid2">
             <label class="field">
               <span>X</span>
-              <input id="xInput" type="number" inputmode="numeric" placeholder="z.B. 1143">
+              <input id="xInput" type="number" inputmode="numeric" placeholder="z.B. 417">
             </label>
             <label class="field">
               <span>Y</span>
-              <input id="yInput" type="number" inputmode="numeric" placeholder="z.B. 951">
+              <input id="yInput" type="number" inputmode="numeric" placeholder="z.B. 465">
             </label>
           </div>
 
@@ -231,13 +266,54 @@
 
           <div class="kv">
             <div><span>Aktuelle Map</span><b id="uiMap">Juno</b></div>
-            <div><span>Koordinatenbereich</span><b id="uiRange">0–1500</b></div>
             <div><span>Hover</span><b id="uiHover">—</b></div>
             <div><span>Marker</span><b id="uiMarker">—</b></div>
           </div>
 
+          <div class="calibBadge" id="calibState">
+            <span class="dotSmall" id="calibDot"></span>
+            <span id="calibText">Nicht kalibriert (ungefähre Werte)</span>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="cardTitle">Kalibrieren (macht es exakt)</div>
           <div class="hint">
-            Tipp: Klick auf die Map setzt den Marker und übernimmt X/Y automatisch.
+            Schritt 1: „Punkt A wählen“, dann auf der Map klicken und Ingame X/Y eintragen.<br/>
+            Schritt 2: „Punkt B wählen“, auf zweiten Punkt klicken und Ingame X/Y eintragen.<br/>
+            Dann speichern.
+          </div>
+
+          <div class="btnRow">
+            <button id="pickA" class="btn" type="button">Punkt A wählen</button>
+            <button id="pickB" class="btn" type="button">Punkt B wählen</button>
+          </div>
+
+          <div class="grid2" style="margin-top:10px">
+            <label class="field">
+              <span>Punkt A Ingame X</span>
+              <input id="ax" type="number" inputmode="numeric" placeholder="z.B. 417">
+            </label>
+            <label class="field">
+              <span>Punkt A Ingame Y</span>
+              <input id="ay" type="number" inputmode="numeric" placeholder="z.B. 465">
+            </label>
+          </div>
+
+          <div class="grid2" style="margin-top:10px">
+            <label class="field">
+              <span>Punkt B Ingame X</span>
+              <input id="bx" type="number" inputmode="numeric" placeholder="z.B. 1200">
+            </label>
+            <label class="field">
+              <span>Punkt B Ingame Y</span>
+              <input id="by" type="number" inputmode="numeric" placeholder="z.B. 900">
+            </label>
+          </div>
+
+          <div class="btnRow">
+            <button id="saveCal" class="btn primary" type="button">Kalibrierung speichern</button>
+            <button id="resetCal" class="btn danger" type="button">Kalibrierung löschen</button>
           </div>
 
           <div class="status" id="status">Status: lade…</div>
@@ -248,11 +324,10 @@
         <div class="card mapCard">
           <div class="mapHeader">
             <div class="pill" id="pillName">Juno</div>
-            <div class="pill soft" id="pillSize">1500×1500</div>
+            <div class="pill soft" id="pillInfo">Kalibrierung empfohlen</div>
           </div>
 
           <div class="mapWrap" id="mapWrap">
-            <!-- Bild ist sichtbar, JS setzt nur source beim Wechsel -->
             <img id="mapImg" alt="Map" src="./maps/juno.png" />
             <div class="lcHud" id="lcHud">—</div>
 
@@ -262,7 +337,7 @@
             </div>
           </div>
 
-          <div class="mapFooter" id="mapFooter">0,0 oben links • 1500,1500 unten rechts</div>
+          <div class="mapFooter" id="mapFooter">Klick setzt Marker • Hover zeigt Ingame Koordinaten</div>
         </div>
       </section>
     </main>
@@ -271,47 +346,86 @@
   <script>
     (() => {
       const MAPS = [
-        { id:"juno",   name:"Juno",   file:"./maps/juno.png",   size:1500 },
-        { id:"dratan", name:"Dratan", file:"./maps/dratan.png", size:3000 },
-        { id:"merak",  name:"Merak",  file:"./maps/merak.png",  size:1500 },
-        { id:"egeha",  name:"Egeha",  file:"./maps/egeha.png",  size:1500 }
+        { id:"juno",   name:"Juno",   file:"./maps/juno.png" },
+        { id:"dratan", name:"Dratan", file:"./maps/dratan.png" },
+        { id:"merak",  name:"Merak",  file:"./maps/merak.png" },
+        { id:"egeha",  name:"Egeha",  file:"./maps/egeha.png" }
       ];
 
+      // ---- UI ----
       const statusEl = document.getElementById("status");
       const setStatus = (m) => statusEl.textContent = "Status: " + m;
+
+      const mapWrap = document.getElementById("mapWrap");
+      const mapImg  = document.getElementById("mapImg");
+      const marker  = document.getElementById("marker");
+      const lcHud   = document.getElementById("lcHud");
+
+      const tabs = Array.from(document.querySelectorAll(".tab"));
 
       const xInput = document.getElementById("xInput");
       const yInput = document.getElementById("yInput");
       const setBtn = document.getElementById("setBtn");
       const clearBtn = document.getElementById("clearBtn");
 
-      const mapWrap = document.getElementById("mapWrap");
-      const mapImg = document.getElementById("mapImg");
-      const marker = document.getElementById("marker");
-      const lcHud = document.getElementById("lcHud");
-
       const uiMap = document.getElementById("uiMap");
-      const uiRange = document.getElementById("uiRange");
       const uiHover = document.getElementById("uiHover");
       const uiMarker = document.getElementById("uiMarker");
 
       const pillName = document.getElementById("pillName");
-      const pillSize = document.getElementById("pillSize");
-      const mapFooter = document.getElementById("mapFooter");
+      const pillInfo = document.getElementById("pillInfo");
+      const mapFooter= document.getElementById("mapFooter");
 
-      const tabs = Array.from(document.querySelectorAll(".tab"));
+      // calibration UI
+      const pickA = document.getElementById("pickA");
+      const pickB = document.getElementById("pickB");
+      const ax = document.getElementById("ax");
+      const ay = document.getElementById("ay");
+      const bx = document.getElementById("bx");
+      const by = document.getElementById("by");
+      const saveCal = document.getElementById("saveCal");
+      const resetCal = document.getElementById("resetCal");
 
+      const calibDot = document.getElementById("calibDot");
+      const calibText = document.getElementById("calibText");
+
+      // ---- state ----
       let current = MAPS[0];
       const savedMarkers = {}; // {mapId:{x,y}}
+      let pickMode = null; // "A" | "B" | null
 
-      const clamp = (n,min,max) => Math.max(min, Math.min(max, n));
-      const fmtGame = (x,y) => `${x}, ${y}`;
+      // calibration stored per map:
+      // cal = { aX, cX, aY, cY } where:
+      // u = aX * x + cX   (u in 0..1)
+      // v = aY * y + cY   (v in 0..1)
+      // Inverse:
+      // x = (u - cX)/aX, y=(v - cY)/aY
+      function calKey(mapId){ return "lc_calibration_" + mapId; }
+      function loadCal(mapId){
+        try{
+          const raw = localStorage.getItem(calKey(mapId));
+          if(!raw) return null;
+          const obj = JSON.parse(raw);
+          if(!obj || !isFinite(obj.aX) || !isFinite(obj.cX) || !isFinite(obj.aY) || !isFinite(obj.cY)) return null;
+          if(obj.aX === 0 || obj.aY === 0) return null;
+          return obj;
+        }catch{ return null; }
+      }
+      function saveCalObj(mapId, obj){
+        localStorage.setItem(calKey(mapId), JSON.stringify(obj));
+      }
+      function clearCalObj(mapId){
+        localStorage.removeItem(calKey(mapId));
+      }
+
+      const clamp = (n,min,max)=>Math.max(min, Math.min(max,n));
+      const fmtGame = (x,y)=>`${Math.round(x)}, ${Math.round(y)}`;
 
       function setActiveTab(id){
         tabs.forEach(b => b.classList.toggle("is-active", b.dataset.map === id));
       }
 
-      // --- FIX: echtes gerendertes Bild innerhalb der mapWrap ("contain") ---
+      // --- rendered image metrics (letterboxing fix) ---
       function getRenderedImageMetrics() {
         const wrapRect = mapWrap.getBoundingClientRect();
 
@@ -332,9 +446,9 @@
         return { wrapRect, dispW, dispH, offX, offY };
       }
 
-      function toCoords(clientX, clientY){
+      // mouse -> normalized u/v within actual drawn image
+      function mouseToUV(clientX, clientY){
         const { wrapRect, dispW, dispH, offX, offY } = getRenderedImageMetrics();
-
         const rx = clientX - wrapRect.left;
         const ry = clientY - wrapRect.top;
 
@@ -344,31 +458,76 @@
         const imgBottom= offY + dispH;
 
         const inside = (rx >= imgLeft && ry >= imgTop && rx <= imgRight && ry <= imgBottom);
-        if (!inside) return { x:0, y:0, inside:false };
+        if(!inside) return { inside:false, u:0, v:0 };
 
-        const nx = clamp((rx - imgLeft) / dispW, 0, 1);
-        const ny = clamp((ry - imgTop)  / dispH, 0, 1);
-
-        const x = Math.round(nx * current.size);
-        const y = Math.round(ny * current.size);
-        return { x, y, inside:true };
+        const u = clamp((rx - imgLeft) / dispW, 0, 1);
+        const v = clamp((ry - imgTop)  / dispH, 0, 1);
+        return { inside:true, u, v };
       }
 
-      function placeMarker(x,y,save=true){
-        const cx = clamp(Math.round(Number(x)), 0, current.size);
-        const cy = clamp(Math.round(Number(y)), 0, current.size);
-
+      // Convert u/v -> px in wrap for marker positioning
+      function uvToPx(u,v){
         const { dispW, dispH, offX, offY } = getRenderedImageMetrics();
+        return {
+          px: offX + u * dispW,
+          py: offY + v * dispH
+        };
+      }
 
-        const px = offX + (cx / current.size) * dispW;
-        const py = offY + (cy / current.size) * dispH;
+      function updateCalibBadge(){
+        const cal = loadCal(current.id);
+        if(cal){
+          calibDot.classList.add("ok");
+          calibText.textContent = "Kalibriert (exakt)";
+          pillInfo.textContent = "Kalibriert ✅";
+        } else {
+          calibDot.classList.remove("ok");
+          calibText.textContent = "Nicht kalibriert (ungefähre Werte)";
+          pillInfo.textContent = "Kalibrierung empfohlen";
+        }
+      }
+
+      // Hover: u/v -> ingame coords if calibrated, otherwise approximate
+      // Approx fallback (if not calibrated): assume 0..1500/3000 based on file? (not reliable)
+      // We'll fallback to image pixel-as-coord: x≈u*1500, y≈v*1500 (Juno/Merak/Egeha), Dratan 3000.
+      function approxMax(mapId){
+        return mapId === "dratan" ? 3000 : 1500;
+      }
+
+      function uvToIngame(u,v){
+        const cal = loadCal(current.id);
+        if(cal){
+          const x = (u - cal.cX) / cal.aX;
+          const y = (v - cal.cY) / cal.aY;
+          return { x, y, calibrated:true };
+        }
+        const max = approxMax(current.id);
+        return { x: u * max, y: v * max, calibrated:false };
+      }
+
+      function ingameToUV(x,y){
+        const cal = loadCal(current.id);
+        if(cal){
+          const u = cal.aX * x + cal.cX;
+          const v = cal.aY * y + cal.cY;
+          return { u, v, calibrated:true };
+        }
+        const max = approxMax(current.id);
+        return { u: x / max, v: y / max, calibrated:false };
+      }
+
+      function placeMarkerIngame(x,y,save=true){
+        const { u, v } = ingameToUV(Number(x), Number(y));
+        const uu = clamp(u, 0, 1);
+        const vv = clamp(v, 0, 1);
+        const { px, py } = uvToPx(uu, vv);
 
         marker.style.left = `${px}px`;
         marker.style.top  = `${py}px`;
         marker.style.display = "block";
 
-        uiMarker.textContent = `X: ${cx} | Y: ${cy}`;
-        if(save) savedMarkers[current.id] = {x:cx,y:cy};
+        uiMarker.textContent = `X: ${Math.round(x)} | Y: ${Math.round(y)}`;
+        if(save) savedMarkers[current.id] = { x: Number(x), y: Number(y) };
       }
 
       function clearMarker(save=true){
@@ -380,28 +539,25 @@
       function applyMap(m){
         current = m;
         setActiveTab(m.id);
-
         uiMap.textContent = m.name;
-        uiRange.textContent = `0–${m.size}`;
         pillName.textContent = m.name;
-        pillSize.textContent = `${m.size}×${m.size}`;
-        mapFooter.textContent = `0,0 oben links • ${m.size},${m.size} unten rechts`;
 
-        xInput.min = 0; xInput.max = m.size;
-        yInput.min = 0; yInput.max = m.size;
+        updateCalibBadge();
 
         uiHover.textContent = "—";
         lcHud.textContent = "—";
+        mapFooter.textContent = "Klick setzt Marker • Hover zeigt Ingame Koordinaten";
 
         const url = m.file + "?v=" + Date.now();
         setStatus(`lade Bild: ${url}`);
 
         mapImg.onload = () => {
           setStatus(`Bild geladen ✅ (${m.name})`);
+          // reposition existing marker after load/resize
           const s = savedMarkers[m.id];
-          if (s) placeMarker(s.x, s.y, false);
+          if(s) placeMarkerIngame(s.x, s.y, false);
         };
-        mapImg.onerror = () => setStatus(`Bild FEHLT ❌ (Pfad/Name falsch): ${m.file}`);
+        mapImg.onerror = () => setStatus(`Bild FEHLT ❌: ${m.file}`);
 
         mapImg.src = url;
 
@@ -414,66 +570,163 @@
           yInput.value = "";
           clearMarker(false);
         }
+
+        // also load calibration fields to show (optional)
+        const cal = loadCal(m.id);
+        if(cal){
+          // we can't reconstruct original points, but keep fields as-is
+        }
       }
 
-      // Tabs click
-      tabs.forEach(btn => {
-        btn.addEventListener("click", () => {
+      // tabs
+      tabs.forEach(btn=>{
+        btn.addEventListener("click", ()=>{
           const id = btn.dataset.map;
-          const m = MAPS.find(mm => mm.id === id);
+          const m = MAPS.find(mm=>mm.id===id);
           if(m) applyMap(m);
         });
       });
 
-      // Hover / Click on wrap (nicht auf img), damit Offsets korrekt gelten
-      mapWrap.addEventListener("mousemove", (e) => {
-        const {x,y,inside} = toCoords(e.clientX, e.clientY);
-        if(!inside){
-          uiHover.textContent = "—";
-          lcHud.textContent = "—";
+      // hover / click
+      mapWrap.addEventListener("mousemove", (e)=>{
+        const uv = mouseToUV(e.clientX, e.clientY);
+        if(!uv.inside){
+          uiHover.textContent="—";
+          lcHud.textContent="—";
           return;
         }
-        uiHover.textContent = `X: ${x} | Y: ${y}`;
-        lcHud.textContent = fmtGame(x,y);
+        const ing = uvToIngame(uv.u, uv.v);
+        uiHover.textContent = `X: ${Math.round(ing.x)} | Y: ${Math.round(ing.y)}` + (ing.calibrated ? "" : " (≈)");
+        lcHud.textContent = fmtGame(ing.x, ing.y);
       });
 
-      mapWrap.addEventListener("mouseleave", () => {
-        uiHover.textContent = "—";
-        lcHud.textContent = "—";
+      mapWrap.addEventListener("mouseleave", ()=>{
+        uiHover.textContent="—";
+        lcHud.textContent="—";
       });
 
-      mapWrap.addEventListener("click", (e) => {
-        const {x,y,inside} = toCoords(e.clientX, e.clientY);
-        if(!inside) return;
-        xInput.value = x;
-        yInput.value = y;
-        placeMarker(x,y,true);
+      mapWrap.addEventListener("click", (e)=>{
+        const uv = mouseToUV(e.clientX, e.clientY);
+        if(!uv.inside) return;
+
+        // calibration picking?
+        if(pickMode){
+          if(pickMode === "A"){
+            mapWrap.dataset.uA = String(uv.u);
+            mapWrap.dataset.vA = String(uv.v);
+            setStatus("Punkt A gesetzt. Jetzt Ingame X/Y für A eintragen.");
+          } else {
+            mapWrap.dataset.uB = String(uv.u);
+            mapWrap.dataset.vB = String(uv.v);
+            setStatus("Punkt B gesetzt. Jetzt Ingame X/Y für B eintragen.");
+          }
+          pickMode = null;
+          pickA.textContent = "Punkt A wählen";
+          pickB.textContent = "Punkt B wählen";
+          return;
+        }
+
+        // normal marker by click (ingame coords from hover conversion)
+        const ing = uvToIngame(uv.u, uv.v);
+        xInput.value = Math.round(ing.x);
+        yInput.value = Math.round(ing.y);
+        placeMarkerIngame(ing.x, ing.y, true);
       });
 
-      // Manual set
-      setBtn.addEventListener("click", () => {
+      // manual marker set
+      setBtn.addEventListener("click", ()=>{
         const x = Number(xInput.value);
         const y = Number(yInput.value);
         if(!Number.isFinite(x) || !Number.isFinite(y)) return;
-        placeMarker(x,y,true);
+        placeMarkerIngame(x, y, true);
       });
 
-      clearBtn.addEventListener("click", () => {
+      clearBtn.addEventListener("click", ()=>{
         clearMarker(true);
-        xInput.value = "";
-        yInput.value = "";
+        xInput.value=""; yInput.value="";
       });
 
-      [xInput,yInput].forEach(inp => {
-        inp.addEventListener("keydown", (e) => {
-          if(e.key === "Enter") setBtn.click();
-        });
+      [xInput,yInput].forEach(inp=>{
+        inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter") setBtn.click(); });
       });
 
-      // bei Resize Marker nachziehen
-      window.addEventListener("resize", () => {
+      // calibration pick buttons
+      pickA.addEventListener("click", ()=>{
+        pickMode = "A";
+        pickA.textContent = "→ Klick auf Map für Punkt A";
+        pickB.textContent = "Punkt B wählen";
+        setStatus("Kalibrierung: Klick auf die Map, um Punkt A zu setzen.");
+      });
+
+      pickB.addEventListener("click", ()=>{
+        pickMode = "B";
+        pickB.textContent = "→ Klick auf Map für Punkt B";
+        pickA.textContent = "Punkt A wählen";
+        setStatus("Kalibrierung: Klick auf die Map, um Punkt B zu setzen.");
+      });
+
+      // save calibration (two-point linear mapping per axis in normalized space)
+      saveCal.addEventListener("click", ()=>{
+        const uA = Number(mapWrap.dataset.uA);
+        const vA = Number(mapWrap.dataset.vA);
+        const uB = Number(mapWrap.dataset.uB);
+        const vB = Number(mapWrap.dataset.vB);
+
+        const xA = Number(ax.value), yA = Number(ay.value);
+        const xB = Number(bx.value), yB = Number(by.value);
+
+        if(!Number.isFinite(uA) || !Number.isFinite(vA) || !Number.isFinite(uB) || !Number.isFinite(vB)){
+          setStatus("Kalibrierung: Bitte erst Punkt A und Punkt B auf der Map anklicken.");
+          return;
+        }
+        if(!Number.isFinite(xA) || !Number.isFinite(yA) || !Number.isFinite(xB) || !Number.isFinite(yB)){
+          setStatus("Kalibrierung: Bitte Ingame Koordinaten für A und B eintragen.");
+          return;
+        }
+        if(xA === xB || yA === yB){
+          setStatus("Kalibrierung: A und B müssen unterschiedliche X und unterschiedliche Y haben (weiter auseinander wählen).");
+          return;
+        }
+
+        // u = aX*x + cX
+        const aX = (uB - uA) / (xB - xA);
+        const cX = uA - aX * xA;
+
+        // v = aY*y + cY  (automatisch auch invert möglich, wenn aY negativ)
+        const aY = (vB - vA) / (yB - yA);
+        const cY = vA - aY * yA;
+
+        if(aX === 0 || aY === 0 || !isFinite(aX) || !isFinite(aY) || !isFinite(cX) || !isFinite(cY)){
+          setStatus("Kalibrierung: Berechnung fehlgeschlagen. Bitte andere Punkte wählen.");
+          return;
+        }
+
+        saveCalObj(current.id, { aX, cX, aY, cY });
+        updateCalibBadge();
+        setStatus("Kalibrierung gespeichert ✅ (ab jetzt exakt)");
+
+        // reposition current marker if exists
         const s = savedMarkers[current.id];
-        if (s) placeMarker(s.x, s.y, false);
+        if(s) placeMarkerIngame(s.x, s.y, false);
+      });
+
+      resetCal.addEventListener("click", ()=>{
+        clearCalObj(current.id);
+        updateCalibBadge();
+        setStatus("Kalibrierung gelöscht.");
+      });
+
+      function saveCalObj(mapId, obj){
+        localStorage.setItem("lc_calibration_" + mapId, JSON.stringify(obj));
+      }
+      function clearCalObj(mapId){
+        localStorage.removeItem("lc_calibration_" + mapId);
+      }
+
+      // resize -> reposition marker correctly
+      window.addEventListener("resize", ()=>{
+        const s = savedMarkers[current.id];
+        if(s) placeMarkerIngame(s.x, s.y, false);
       });
 
       setStatus("JS läuft ✅ – initialisiere…");
