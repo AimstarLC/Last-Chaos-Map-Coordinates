@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Last Chaos Maps – Koordinaten</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Last Chaos – Map Koordinaten</div>
+
+    <div class="controls">
+      <label>
+        Map:
+        <select id="mapSelect"></select>
+      </label>
+
+      <div class="coordInputs">
+        <label>X <input id="xInput" type="number" min="0" max="1500" step="1" /></label>
+        <label>Y <input id="yInput" type="number" min="0" max="1500" step="1" /></label>
+        <button id="markBtn" type="button">Markieren</button>
+        <button id="clearBtn" type="button" class="ghost">Marker löschen</button>
+      </div>
+
+      <div class="readout">
+        <span>Hover:</span>
+        <span id="hoverText">X: – | Y: –</span>
+        <span class="sep">•</span>
+        <span>Marker:</span>
+        <span id="markerText">–</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="mapWrap" id="mapWrap">
+      <img id="mapImg" alt="Map" />
+      <div class="hud" id="hud">X: –<br>Y: –</div>
+      <div class="marker" id="marker" title="Marker"></div>
+    </div>
+
+    <p class="hint">
+      Tipp: Maus über die Map = Koordinaten. Klick auf die Map setzt Marker und füllt X/Y.
+    </p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

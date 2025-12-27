@@ -1,0 +1,142 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f1115;
+  color: #e8e8e8;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #151923;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 12px 14px;
+}
+
+.brand {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.controls {
+  display: grid;
+  gap: 10px;
+}
+
+.controls label { font-size: 14px; }
+
+select, input, button {
+  font: inherit;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  padding: 8px 10px;
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+  background: rgba(255,255,255,0.12);
+}
+
+button:hover { background: rgba(255,255,255,0.18); }
+
+button.ghost {
+  background: transparent;
+}
+
+.coordInputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.coordInputs label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.coordInputs input {
+  width: 110px;
+}
+
+.readout {
+  font-size: 13px;
+  opacity: 0.95;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.sep { opacity: 0.5; }
+
+.main {
+  padding: 14px;
+}
+
+.mapWrap {
+  position: relative;
+  display: inline-block;
+  max-width: 98vw;
+  background: #0b0d12;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+#mapImg {
+  display: block;
+  max-width: 98vw;
+  max-height: 78vh;
+  width: auto;
+  height: auto;
+  user-select: none;
+}
+
+.hud {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  background: rgba(0,0,0,0.65);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  pointer-events: none;
+  min-width: 140px;
+}
+
+.marker {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  display: none;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.6);
+  background: #ff4d4d;
+}
+
+.marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 77, 77, 0.75);
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: 0.8;
+}
