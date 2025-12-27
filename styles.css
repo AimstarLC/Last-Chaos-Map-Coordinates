@@ -3,7 +3,6 @@
   --bg0:#0b0d12;
   --bg1:#0f1320;
   --card: rgba(255,255,255,0.06);
-  --card2: rgba(255,255,255,0.08);
   --border: rgba(255,255,255,0.10);
   --text:#e8e8ee;
   --muted: rgba(232,232,238,0.72);
@@ -246,8 +245,4 @@ body{
 .mapFooter{
   margin-top: 10px;
   font-size: 13px;
-  color: var(--muted);
-  display:flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+  color: var
