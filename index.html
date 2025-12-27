@@ -4,20 +4,204 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Last Chaos – Map Koordinaten</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    * { box-sizing: border-box; }
+    :root{
+      --bg0:#0b0d12; --bg1:#12172a;
+      --card: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.12);
+      --text:#e9eaf0; --muted: rgba(233,234,240,0.70);
+      --accent:#7c5cff; --accent2:#32d2ff;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 520px at 10% 0%, rgba(124,92,255,0.22), transparent 55%),
+        radial-gradient(900px 520px at 90% 10%, rgba(50,210,255,0.18), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg0));
+    }
+    .app{max-width:1280px;margin:0 auto;padding:18px}
+    .topbar{
+      border:1px solid var(--border);
+      background: var(--card);
+      border-radius:18px;
+      padding:14px;
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .dot{
+      width:14px;height:14px;border-radius:999px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 0 5px rgba(124,92,255,0.16);
+    }
+    .title{font-weight:850;letter-spacing:.2px}
+    .sub{margin-top:3px;font-size:13px;color:var(--muted)}
+    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .tab{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding:10px 14px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:800;
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+    }
+    .tab:hover{background:rgba(255,255,255,0.08);transform:translateY(-1px)}
+    .tab.is-active{
+      border-color: rgba(124,92,255,0.60);
+      background: rgba(124,92,255,0.20);
+    }
+    .layout{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){ .layout{grid-template-columns:1fr} }
+
+    .card{
+      border:1px solid var(--border);
+      background: var(--card);
+      border-radius:18px;
+      padding:14px;
+      backdrop-filter: blur(10px);
+    }
+    .cardTitle{font-weight:850;margin-bottom:10px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+    .field input{
+      padding:11px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,0.22);
+      color: var(--text);
+      outline:none;
+    }
+    .field input:focus{
+      border-color: rgba(124,92,255,0.60);
+      box-shadow: 0 0 0 4px rgba(124,92,255,0.16);
+    }
+    .btnRow{display:flex;gap:10px;margin-top:10px}
+    .btn{
+      flex:1;
+      padding:11px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      cursor:pointer;
+      font-weight:850;
+    }
+    .btn:hover{background:rgba(255,255,255,0.10)}
+    .btn.primary{
+      border-color: rgba(124,92,255,0.60);
+      background: rgba(124,92,255,0.22);
+    }
+    .btn.primary:hover{background: rgba(124,92,255,0.28)}
+    .kv{margin-top:12px;display:grid;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px}
+    .kv > div{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
+    .kv b{color:var(--text);font-weight:850}
+    .hint{margin-top:12px;color:var(--muted);font-size:13px;line-height:1.35}
+    .status{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      font-size:12px;
+      color: rgba(233,234,240,0.85);
+      word-break: break-word;
+    }
+
+    .mapCard{padding:12px}
+    .mapHeader{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+    .pill{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      font-weight:850;
+      font-size:13px;
+    }
+    .pill.soft{opacity:.85;font-weight:750}
+
+    .mapWrap{
+      position:relative;
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.22);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+    }
+    #mapImg{
+      display:block;
+      width:100%;
+      height:auto;
+      max-height:78vh;
+      object-fit:contain;
+      user-select:none;
+    }
+
+    /* Last Chaos HUD Koordinaten */
+    .lcHud{
+      position:absolute;
+      left:12px;
+      top:12px;
+      padding:4px 8px;
+      border-radius:4px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 14px;
+      font-weight: 900;
+      color: #49ff5f;
+      letter-spacing: 0.2px;
+      text-shadow:
+        -1px -1px 0 rgba(0,0,0,0.95),
+         1px -1px 0 rgba(0,0,0,0.95),
+        -1px  1px 0 rgba(0,0,0,0.95),
+         1px  1px 0 rgba(0,0,0,0.95);
+      pointer-events:none;
+    }
+
+    .marker{
+      position:absolute;
+      transform: translate(-50%, -50%);
+      display:none;
+      pointer-events:none;
+    }
+    .mDot{
+      width:12px;height:12px;border-radius:999px;
+      background:#ff4d6d;
+      box-shadow: 0 0 0 4px rgba(0,0,0,0.55);
+    }
+    .mRing{
+      position:absolute;left:50%;top:50%;
+      width:32px;height:32px;
+      transform: translate(-50%,-50%);
+      border-radius:999px;
+      border:2px solid rgba(255,77,109,0.7);
+    }
+    .mapFooter{margin-top:10px;font-size:13px;color: var(--muted);}
+  </style>
 </head>
+
 <body>
   <div class="app">
     <header class="topbar">
       <div class="brand">
         <div class="dot"></div>
-        <div class="brandText">
+        <div>
           <div class="title">Last Chaos – Map Koordinaten</div>
           <div class="sub">Hover zeigt X/Y • Klick setzt Marker • Dratan: 3000×3000</div>
         </div>
       </div>
 
-      <div class="tabs" id="tabs">
+      <div class="tabs">
         <button class="tab is-active" data-map="juno" type="button">Juno</button>
         <button class="tab" data-map="dratan" type="button">Dratan</button>
         <button class="tab" data-map="merak" type="button">Merak</button>
@@ -28,7 +212,7 @@
     <main class="layout">
       <aside class="panel">
         <div class="card">
-          <div class="cardTitle">Koordinaten</div>
+          <div class="cardTitle">Marker setzen</div>
 
           <div class="grid2">
             <label class="field">
@@ -47,8 +231,8 @@
           </div>
 
           <div class="kv">
-            <div><span>Map</span><b id="uiMap">Juno</b></div>
-            <div><span>Range</span><b id="uiRange">0–1500</b></div>
+            <div><span>Aktuelle Map</span><b id="uiMap">Juno</b></div>
+            <div><span>Koordinatenbereich</span><b id="uiRange">0–1500</b></div>
             <div><span>Hover</span><b id="uiHover">—</b></div>
             <div><span>Marker</span><b id="uiMarker">—</b></div>
           </div>
@@ -57,7 +241,7 @@
             Tipp: Klick auf die Map setzt den Marker und übernimmt X/Y automatisch.
           </div>
 
-          <div class="status" id="status">Status: lade…</div>
+          <div class="status" id="status">Status: Single-File Build gestartet…</div>
         </div>
       </aside>
 
@@ -68,10 +252,8 @@
             <div class="pill soft" id="pillSize">1500×1500</div>
           </div>
 
-          <div class="mapWrap" id="mapWrap">
-            <img id="mapImg" alt="Map" />
-
-            <!-- In-Game HUD Style -->
+          <div class="mapWrap">
+            <img id="mapImg" alt="Map" src="./maps/juno.png">
             <div class="lcHud" id="lcHud">—</div>
 
             <div class="marker" id="marker">
@@ -86,6 +268,164 @@
     </main>
   </div>
 
-  <script src="./app.js"></script>
+  <script>
+    (function(){
+      const MAPS = [
+        { id:"juno",   name:"Juno",   file:"./maps/juno.png",   size:1500 },
+        { id:"dratan", name:"Dratan", file:"./maps/dratan.png", size:3000 },
+        { id:"merak",  name:"Merak",  file:"./maps/merak.png",  size:1500 },
+        { id:"egeha",  name:"Egeha",  file:"./maps/egeha.png",  size:1500 }
+      ];
+
+      const statusEl = document.getElementById("status");
+      const setStatus = (m) => statusEl.textContent = "Status: " + m;
+
+      const xInput = document.getElementById("xInput");
+      const yInput = document.getElementById("yInput");
+      const setBtn = document.getElementById("setBtn");
+      const clearBtn = document.getElementById("clearBtn");
+
+      const mapImg = document.getElementById("mapImg");
+      const marker = document.getElementById("marker");
+      const lcHud = document.getElementById("lcHud");
+
+      const uiMap = document.getElementById("uiMap");
+      const uiRange = document.getElementById("uiRange");
+      const uiHover = document.getElementById("uiHover");
+      const uiMarker = document.getElementById("uiMarker");
+
+      const pillName = document.getElementById("pillName");
+      const pillSize = document.getElementById("pillSize");
+      const mapFooter = document.getElementById("mapFooter");
+      const tabs = Array.from(document.querySelectorAll(".tab"));
+
+      let current = MAPS[0];
+      const savedMarkers = {};
+
+      const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+      const fmtGame = (x,y)=>`${x}, ${y}`;
+
+      function setActiveTab(id){
+        tabs.forEach(b=>b.classList.toggle("is-active", b.dataset.map===id));
+      }
+
+      async function checkImageIsReallyImage(url){
+        try{
+          const res = await fetch(url, { cache:"no-store" });
+          const ct = (res.headers.get("content-type")||"").toLowerCase();
+          return ct.startsWith("image/");
+        }catch{ return false; }
+      }
+
+      function placeMarker(x,y,save=true){
+        const cx = clamp(Math.round(Number(x)), 0, current.size);
+        const cy = clamp(Math.round(Number(y)), 0, current.size);
+        marker.style.left = `${(cx/current.size)*100}%`;
+        marker.style.top  = `${(cy/current.size)*100}%`;
+        marker.style.display = "block";
+        uiMarker.textContent = `X: ${cx} | Y: ${cy}`;
+        if(save) savedMarkers[current.id] = {x:cx,y:cy};
+      }
+
+      function clearMarker(save=true){
+        marker.style.display="none";
+        uiMarker.textContent="—";
+        if(save) delete savedMarkers[current.id];
+      }
+
+      function toCoords(clientX, clientY){
+        const r = mapImg.getBoundingClientRect();
+        const rx = clientX - r.left;
+        const ry = clientY - r.top;
+        const inside = rx>=0 && ry>=0 && rx<=r.width && ry<=r.height;
+        const nx = clamp(rx/r.width, 0, 1);
+        const ny = clamp(ry/r.height,0, 1);
+        const x = Math.round(nx*current.size);
+        const y = Math.round(ny*current.size);
+        return {x,y,inside};
+      }
+
+      function applyMap(m){
+        current = m;
+        setActiveTab(m.id);
+
+        uiMap.textContent = m.name;
+        uiRange.textContent = `0–${m.size}`;
+        pillName.textContent = m.name;
+        pillSize.textContent = `${m.size}×${m.size}`;
+        mapFooter.textContent = `0,0 oben links • ${m.size},${m.size} unten rechts`;
+
+        xInput.min=0; xInput.max=m.size;
+        yInput.min=0; yInput.max=m.size;
+
+        uiHover.textContent="—";
+        lcHud.textContent="—";
+
+        const url = m.file + "?v=" + Date.now();
+        setStatus(`lade Bild: ${url}`);
+
+        mapImg.onload = async () => {
+          const ok = await checkImageIsReallyImage(url);
+          if (!ok){
+            setStatus(`Bild lädt NICHT als Bild ❌ (oft Git-LFS Text). Öffne direkt: ${m.file}`);
+          } else {
+            setStatus(`Bild geladen ✅ (${m.name})`);
+          }
+        };
+        mapImg.onerror = () => setStatus(`Bild FEHLT ❌ (404/Name falsch). Öffne direkt: ${m.file}`);
+
+        mapImg.src = url;
+
+        const s = savedMarkers[m.id];
+        if(s){ xInput.value=s.x; yInput.value=s.y; placeMarker(s.x,s.y,false); }
+        else { xInput.value=""; yInput.value=""; clearMarker(false); }
+      }
+
+      tabs.forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const id = btn.dataset.map;
+          const m = MAPS.find(mm=>mm.id===id);
+          if(m) applyMap(m);
+        });
+      });
+
+      mapImg.addEventListener("mousemove", (e)=>{
+        const {x,y,inside} = toCoords(e.clientX, e.clientY);
+        if(!inside) return;
+        uiHover.textContent = `X: ${x} | Y: ${y}`;
+        lcHud.textContent = fmtGame(x,y);
+      });
+
+      mapImg.addEventListener("mouseleave", ()=>{
+        uiHover.textContent="—";
+        lcHud.textContent="—";
+      });
+
+      mapImg.addEventListener("click", (e)=>{
+        const {x,y,inside} = toCoords(e.clientX, e.clientY);
+        if(!inside) return;
+        xInput.value=x; yInput.value=y;
+        placeMarker(x,y,true);
+      });
+
+      setBtn.addEventListener("click", ()=>{
+        const x=Number(xInput.value), y=Number(yInput.value);
+        if(!Number.isFinite(x) || !Number.isFinite(y)) return;
+        placeMarker(x,y,true);
+      });
+
+      clearBtn.addEventListener("click", ()=>{
+        clearMarker(true);
+        xInput.value=""; yInput.value="";
+      });
+
+      [xInput,yInput].forEach(inp=>{
+        inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter") setBtn.click(); });
+      });
+
+      setStatus("JS läuft ✅ – initialisiere Juno…");
+      applyMap(MAPS[0]);
+    })();
+  </script>
 </body>
 </html>
