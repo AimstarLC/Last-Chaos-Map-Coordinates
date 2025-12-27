@@ -20,16 +20,21 @@ const footerRange = document.getElementById("footerRange");
 const tabButtons = Array.from(document.querySelectorAll(".tab"));
 
 let maps = [];
-let currentMap = null;           // {id,name,file,size}
-let markersByMap = {};           // { [id]: {x,y} }
+let currentMap = null;
+let markersByMap = {}; // { [id]: {x,y} }
+
+// ✅ Repo-Root zuverlässig bestimmen (funktioniert für GitHub Pages /<repo>/)
+function getRepoRootUrl() {
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  // Auf GitHub Pages ist der 1. Path-Teil der Repo-Name: /Last-Chaos-Map-Coordinates/
+  const repo = parts.length >= 1 ? parts[0] : "";
+  return repo ? `${window.location.origin}/${repo}/` : `${window.location.origin}/`;
+}
+const REPO_ROOT = getRepoRootUrl();
 
 // ---- helpers ----
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
-function roundInt(n) {
-  return Math.round(Number(n));
-}
+function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+function roundInt(n) { return Math.round(Number(n)); }
 
 function setHoverUI(x, y) {
   const s = `X: ${x} | Y: ${y}`;
@@ -41,12 +46,8 @@ function clearHoverUI() {
   hoverBadge.textContent = "X: – | Y: –";
 }
 
-function setMarkerUI(x, y) {
-  markerText.textContent = `X: ${x} | Y: ${y}`;
-}
-function clearMarkerUI() {
-  markerText.textContent = "–";
-}
+function setMarkerUI(x, y) { markerText.textContent = `X: ${x} | Y: ${y}`; }
+function clearMarkerUI() { markerText.textContent = "–"; }
 
 function toMapCoords(clientX, clientY) {
   const rect = mapImg.getBoundingClientRect();
@@ -54,6 +55,7 @@ function toMapCoords(clientX, clientY) {
   const relY = clientY - rect.top;
 
   const inside = relX >= 0 && relY >= 0 && relX <= rect.width && relY <= rect.height;
+
   const nx = clamp(relX / rect.width, 0, 1);
   const ny = clamp(relY / rect.height, 0, 1);
 
@@ -87,9 +89,7 @@ function hideMarker(save = true) {
 }
 
 function setActiveTab(mapId) {
-  tabButtons.forEach(btn => {
-    btn.classList.toggle("is-active", btn.dataset.map === mapId);
-  });
+  tabButtons.forEach(btn => btn.classList.toggle("is-active", btn.dataset.map === mapId));
 }
 
 function applyMap(mapObj) {
@@ -107,11 +107,10 @@ function applyMap(mapObj) {
   xInput.min = 0; xInput.max = currentMap.size;
   yInput.min = 0; yInput.max = currentMap.size;
 
-  // --- GitHub Pages robust: URL relativ zur aktuellen BaseURI ---
-  mapImg.src = new URL(`maps/${currentMap.file}`, document.baseURI).href;
+  // ✅ Absoluter URL vom Repo-Root (kein Base/Relative Stress mehr)
+  mapImg.src = `${REPO_ROOT}maps/${currentMap.file}`;
   mapImg.alt = currentMap.name;
 
-  // Debug falls Bild nicht lädt
   mapImg.onerror = () => console.error("Bild konnte nicht geladen werden:", mapImg.src);
 
   clearHoverUI();
@@ -130,13 +129,12 @@ function applyMap(mapObj) {
 
 // ---- load maps ----
 async function loadMaps() {
-  const mapsUrl = new URL("maps/maps.json", document.baseURI);
+  const mapsUrl = `${REPO_ROOT}maps/maps.json`;
   const res = await fetch(mapsUrl, { cache: "no-store" });
-  if (!res.ok) throw new Error("maps.json konnte nicht geladen werden: " + mapsUrl.href);
+  if (!res.ok) throw new Error("maps.json konnte nicht geladen werden: " + mapsUrl);
 
   maps = await res.json();
 
-  // Standard: Juno
   const juno = maps.find(m => m.id === "juno");
   applyMap(juno ?? maps[0]);
 }
@@ -157,9 +155,7 @@ mapImg.addEventListener("mousemove", (e) => {
   setHoverUI(x, y);
 });
 
-mapImg.addEventListener("mouseleave", () => {
-  clearHoverUI();
-});
+mapImg.addEventListener("mouseleave", () => clearHoverUI());
 
 mapImg.addEventListener("click", (e) => {
   if (!currentMap) return;
@@ -173,12 +169,9 @@ mapImg.addEventListener("click", (e) => {
 
 markBtn.addEventListener("click", () => {
   if (!currentMap) return;
-
   const x = Number(xInput.value);
   const y = Number(yInput.value);
-
   if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-
   placeMarker(x, y, true);
 });
 
@@ -197,5 +190,5 @@ clearBtn.addEventListener("click", () => {
 // ---- start ----
 loadMaps().catch(err => {
   console.error(err);
-  alert("Fehler beim Laden. Öffne die DevTools-Konsole (F12) und schau nach 404/URL.");
+  alert("Fehler beim Laden. Öffne F12 → Console und schau nach 404/URL.");
 });
