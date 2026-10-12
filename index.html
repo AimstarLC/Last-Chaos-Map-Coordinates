@@ -253,8 +253,8 @@
 
           <div class="kv">
             <div><span>Aktuelle Map</span><b id="uiMap">Juno</b></div>
-            <div><span>Hover</span><b id="uiHover">—</b></div>
-            <div><span>Marker</span><b id="uiMarker">—</b></div>
+            <div><span>Hover</span><b id="uiHover">-</b></div>
+            <div><span>Marker</span><b id="uiMarker">-</b></div>
           </div>
 
           <div class="badge">
@@ -275,7 +275,7 @@
 
           <div class="mapWrap" id="mapWrap">
             <img id="mapImg" alt="Map" src="./maps/juno.png" />
-            <div class="lcHud" id="lcHud">—</div>
+            <div class="lcHud" id="lcHud">-</div>
 
             <div class="marker" id="marker">
               <div class="mDot"></div>
@@ -300,7 +300,6 @@
         { id:"bloodymir", name:"Bloodymir", file:"./maps/Bloodymir.png" }
       ];
 
-      // FESTE KALIBRIERUNG (ALLE 4 EINGETRAGEN)
       const FIXED_CAL = {
         juno:   {"aX":0.0006544729542302356,"cX":-0.015447295423023477,"aY":0.000672498388834821,"cY":0.00939643803667456},
         dratan: {"aX":0.00033108796935888026,"cX":-0.02224839696256553,"aY":0.00034017239337204384,"cY":0.002140278056180389},
@@ -332,10 +331,10 @@
       const mapFooter= document.getElementById("mapFooter");
 
       let current = MAPS[0];
-      const savedMarkers = {}; // Marker pro Map im aktuellen Browser (nicht global)
+      const savedMarkers = {};
 
       const clamp = (n,min,max)=>Math.max(min, Math.min(max,n));
-      const fmtGame = (x,y)=>`${Math.round(x)},${Math.round(y)}`;
+      const fmtGame = (x,y)=>`${Math.round(x)}, ${Math.round(y)}`;
 
       function setActiveTab(id){
         tabs.forEach(b => b.classList.toggle("is-active", b.dataset.map === id));
@@ -386,7 +385,6 @@
         return cal;
       }
 
-      // u = aX*x + cX ; v = aY*y + cY
       function uvToIngame(u,v){
         const cal = getCal(current.id);
         if(!cal){
@@ -415,13 +413,13 @@
         marker.style.top  = `${py}px`;
         marker.style.display = "block";
 
-        uiMarker.textContent = `X: ${Math.round(x)} \vert{} Y:${Math.round(y)}`;
+        uiMarker.textContent = `X: ${Math.round(x)} | Y: ${Math.round(y)}`;
         if(save) savedMarkers[current.id] = { x: Number(x), y: Number(y) };
       }
 
       function clearMarker(save=true){
         marker.style.display = "none";
-        uiMarker.textContent = "—";
+        uiMarker.textContent = "-";
         if(save) delete savedMarkers[current.id];
       }
 
@@ -436,19 +434,19 @@
         pillName.textContent = m.name;
         updatePillInfo();
 
-        uiHover.textContent = "—";
-        lcHud.textContent = "—";
+        uiHover.textContent = "-";
+        lcHud.textContent = "-";
         mapFooter.textContent = "Klick setzt Marker • Hover zeigt Ingame Koordinaten";
 
         const url = m.file + "?v=" + Date.now();
-        setStatus(`lade Bild: ${url}`);
+        setStatus("lade Bild: " + url);
 
         mapImg.onload = () => {
-          setStatus(`Bild geladen ✅ (${m.name})`);
+          setStatus("Bild geladen ✅ (" + m.name + ")");
           const s = savedMarkers[m.id];
           if(s) placeMarkerIngame(s.x, s.y, false);
         };
-        mapImg.onerror = () => setStatus(`Bild FEHLT ❌: ${m.file}`);
+        mapImg.onerror = () => setStatus("Bild FEHLT ❌: " + m.file);
 
         mapImg.src = url;
 
@@ -474,9 +472,53 @@
       mapWrap.addEventListener("mousemove", (e)=>{
         const uv = mouseToUV(e.clientX, e.clientY);
         if(!uv.inside){
-          uiHover.textContent="—";
-          lcHud.textContent="—";
+          uiHover.textContent="-";
+          lcHud.textContent="-";
           return;
         }
         const ing = uvToIngame(uv.u, uv.v);
-        uiHover.textContent = `X: ${Math.round(ing.x)} | Y:
+        uiHover.textContent = `X: ${Math.round(ing.x)} | Y: ${Math.round(ing.y)}`;
+        lcHud.textContent = fmtGame(ing.x, ing.y);
+      });
+
+      mapWrap.addEventListener("mouseleave", ()=>{
+        uiHover.textContent="-";
+        lcHud.textContent="-";
+      });
+
+      mapWrap.addEventListener("click", (e)=>{
+        const uv = mouseToUV(e.clientX, e.clientY);
+        if(!uv.inside) return;
+        const ing = uvToIngame(uv.u, uv.v);
+        xInput.value = Math.round(ing.x);
+        yInput.value = Math.round(ing.y);
+        placeMarkerIngame(ing.x, ing.y, true);
+      });
+
+      setBtn.addEventListener("click", ()=>{
+        const x = Number(xInput.value);
+        const y = Number(yInput.value);
+        if(!Number.isFinite(x) || !Number.isFinite(y)) return;
+        placeMarkerIngame(x, y, true);
+      });
+
+      clearBtn.addEventListener("click", ()=>{
+        clearMarker(true);
+        xInput.value=""; yInput.value="";
+      });
+
+      [xInput,yInput].forEach(inp=>{
+        inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter") setBtn.click(); });
+      });
+
+      window.addEventListener("resize", ()=>{
+        const s = savedMarkers[current.id];
+        if(s) placeMarkerIngame(s.x, s.y, false);
+      });
+
+      setStatus("JS läuft ✅ – initialisiere…");
+      applyMap(MAPS[0]);
+    })();
+  </script>
+</body>
+</html>
