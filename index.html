@@ -12,6 +12,7 @@
       --border: rgba(255,255,255,0.12);
       --text:#e9eaf0; --muted: rgba(233,234,240,0.70);
       --accent:#7c5cff; --accent2:#32d2ff;
+      --success:#22c55e; --warning:#f59e0b;
     }
     html,body{height:100%}
     body{
@@ -103,6 +104,11 @@
       background: rgba(124,92,255,0.22);
     }
     .btn.primary:hover{background: rgba(124,92,255,0.28)}
+    .btn.warning{
+      border-color: rgba(245, 158, 11, 0.60);
+      background: rgba(245, 158, 11, 0.22);
+    }
+    .btn.warning:hover{background: rgba(245, 158, 11, 0.28)}
 
     .kv{margin-top:12px;display:grid;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px}
     .kv > div{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
@@ -136,6 +142,10 @@
       background: rgba(73,255,95,0.95);
       box-shadow: 0 0 0 4px rgba(73,255,95,0.14);
     }
+    .dotSmall.warning{
+      background: rgba(245,158,11,0.95);
+      box-shadow: 0 0 0 4px rgba(245,158,11,0.14);
+    }
 
     .mapCard{padding:12px}
     .mapHeader{display:flex;gap:8px;align-items:center;margin-bottom:10px}
@@ -156,6 +166,7 @@
       border:1px solid rgba(255,255,255,0.10);
       background: rgba(0,0,0,0.22);
       box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+      cursor: crosshair;
     }
     #mapImg{
       display:block;
@@ -206,6 +217,23 @@
     }
 
     .mapFooter{margin-top:10px;font-size:13px;color: var(--muted);}
+    
+    /* Kalibrierungs-Box Modal/Panel */
+    .calBox {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(245, 158, 11, 0.6);
+      background: rgba(245, 158, 11, 0.08);
+      display: none;
+    }
+    .calBox.active { display: block; }
+    .calBox h4 { margin: 0 0 8px 0; font-size: 13px; color: #f59e0b; }
+    .calBox textarea {
+      width: 100%; height: 65px; margin-top: 6px;
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 6px; font-family: monospace; font-size: 11px;
+    }
   </style>
 </head>
 
@@ -246,15 +274,32 @@
             <button id="clearBtn" class="btn" type="button">Marker löschen</button>
           </div>
 
+          <div class="btnRow" style="margin-top: 8px;">
+            <button id="calBtn" class="btn warning" type="button">🔧 Kalibrierung starten</button>
+          </div>
+
+          <div class="calBox" id="calBox">
+            <h4 id="calTitle">Kalibrierung Modus aktiv</h4>
+            <div id="calDesc" style="font-size:12px; color:var(--muted); margin-bottom:8px;">Klicke auf einen Punkt auf der Karte, dessen echte Ingame-Koordinaten du kennst.</div>
+            <div id="calInputs" style="display:none; gap:6px; flex-direction:column;">
+              <div class="grid2">
+                <input id="calX" type="number" placeholder="Ingame X">
+                <input id="calY" type="number" placeholder="Ingame Y">
+              </div>
+              <button id="calSubmitBtn" class="btn warning" type="button" style="margin-top:6px;">Punkt speichern</button>
+            </div>
+            <textarea id="calOutput" readonly placeholder="Generierte Werte erscheinen hier..."></textarea>
+          </div>
+
           <div class="kv">
             <div><span>Aktuelle Map</span><b id="uiMap">—</b></div>
             <div><span>Hover</span><b id="uiHover">—</b></div>
             <div><span>Marker</span><b id="uiMarker">—</b></div>
           </div>
 
-          <div class="badge">
-            <span class="dotSmall"></span>
-            <span>Kalibriert (Standard-Fallback aktiv)</span>
+          <div class="badge" id="badgeStatus">
+            <span class="dotSmall" id="badgeDot"></span>
+            <span id="badgeText">Kalibriert ✅</span>
           </div>
 
           <div class="status" id="status">Status: lade…</div>
@@ -265,7 +310,7 @@
         <div class="card mapCard">
           <div class="mapHeader">
             <div class="pill" id="pillName">—</div>
-            <div class="pill soft" id="pillInfo">Kalibriert ✅</div>
+            <div class="pill soft" id="pillInfo">Bereit ✅</div>
           </div>
 
           <div class="mapWrap" id="mapWrap">
@@ -291,13 +336,18 @@
         let current = null;
         let savedMarkers = {};
 
-        // Feste Kalibrierung. Dratan hat eigene Maße, alle anderen Standard-Maps nutzen Juno als Basis.
-        const FIXED_CAL = {
+        // Voreingestellte Kalibrierungen (können im Browser überschrieben werden)
+        let FIXED_CAL = JSON.parse(localStorage.getItem("lc_custom_cal") || JSON.stringify({
           juno:   {"aX":0.0006544729542302356,"cX":-0.015447295423023477,"aY":0.000672498388834821,"cY":0.00939643803667456},
           dratan: {"aX":0.00033108796935888026,"cX":-0.02224839696256553,"aY":0.00034017239337204384,"cY":0.002140278056180389},
           merak:  {"aX":0.0006570949127583432,"cX":-0.00678498655844928,"aY":0.0006775662206405054,"cY":-0.0012245172359518358},
           egeha:  {"aX":0.0006544729542302356,"cX":-0.015447295423023477,"aY":0.000672498388834821,"cY":0.00939643803667456}
-        };
+        }));
+
+        // Kalibrierungs-Zustand
+        let calState = 0; // 0: aus, 1: warte auf Pt1, 2: warte auf Pt2
+        let calPt1 = null;
+        let clickedUV = null;
 
         const statusEl = document.getElementById("status");
         const setStatus = (m) => { if(statusEl) statusEl.textContent = "Status: " + m; };
@@ -312,14 +362,24 @@
         const yInput = document.getElementById("yInput");
         const setBtn = document.getElementById("setBtn");
         const clearBtn = document.getElementById("clearBtn");
+        const calBtn = document.getElementById("calBtn");
+        const calBox = document.getElementById("calBox");
+        const calTitle = document.getElementById("calTitle");
+        const calDesc = document.getElementById("calDesc");
+        const calInputs = document.getElementById("calInputs");
+        const calX = document.getElementById("calX");
+        const calY = document.getElementById("calY");
+        const calSubmitBtn = document.getElementById("calSubmitBtn");
+        const calOutput = document.getElementById("calOutput");
 
         const uiMap = document.getElementById("uiMap");
         const uiHover = document.getElementById("uiHover");
         const uiMarker = document.getElementById("uiMarker");
-
         const pillName = document.getElementById("pillName");
         const pillInfo = document.getElementById("pillInfo");
-        const mapFooter = document.getElementById("mapFooter");
+        const badgeDot = document.getElementById("badgeDot");
+        const badgeText = document.getElementById("badgeText");
+        const badgeStatus = document.getElementById("badgeStatus");
 
         const clamp = (n,min,max)=>Math.max(min, Math.min(max,n));
         const fmtGame = (x,y)=>`${Math.round(x)}, ${Math.round(y)}`;
@@ -376,10 +436,7 @@
 
         function getCal(mapId){
           let cal = FIXED_CAL[mapId];
-          // Wenn keine spezifische Kalibrierung existiert und es nicht Dratan ist, nutze Juno als Standard!
-          if(!cal && mapId !== 'dratan') {
-            cal = FIXED_CAL['juno'];
-          }
+          if(!cal && mapId !== 'dratan') cal = FIXED_CAL['juno'];
           if(!cal) return null;
           if(!isFinite(cal.aX) || !isFinite(cal.cX) || !isFinite(cal.aY) || !isFinite(cal.cY)) return null;
           if(cal.aX === 0 || cal.aY === 0) return null;
@@ -429,7 +486,7 @@
           renderTabs();
           uiMap.textContent = m.name;
           pillName.textContent = m.name;
-          pillInfo.textContent = "Kalibriert ✅";
+          pillInfo.textContent = FIXED_CAL[m.id] ? "Kalibriert ✅" : "Standard";
 
           uiHover.textContent = "—";
           lcHud.textContent = "—";
@@ -475,6 +532,18 @@
           setStatus("Bereit ✅");
         }
 
+        // Kalibrierungs-Logik Button
+        calBtn.addEventListener("click", () => {
+          calState = 1;
+          calBox.classList.add("active");
+          calTitle.textContent = "Schritt 1: Klicke Punkt A auf der Karte";
+          calDesc.textContent = "Klicke auf einen Punkt, dessen Ingame-Koordinaten du genau kennst (z.B. oben links).";
+          calInputs.style.display = "none";
+          calBtn.textContent = "❌ Kalibrierung abbrechen";
+          badgeDot.className = "dotSmall warning";
+          badgeText.textContent = "Kalibriere (Punkt 1)...";
+        });
+
         mapWrap.addEventListener("mousemove", (e)=>{
           if(!current) return;
           const uv = mouseToUV(e.clientX, e.clientY);
@@ -497,10 +566,64 @@
           if(!current) return;
           const uv = mouseToUV(e.clientX, e.clientY);
           if(!uv.inside) return;
+
+          if(calState > 0) {
+            // Im Kalibrierungs-Modus
+            clickedUV = uv;
+            calInputs.style.display = "flex";
+            calX.value = ""; calY.value = "";
+            calX.focus();
+            if(calState === 1) {
+              calDesc.textContent = `Punkt 1 gewählt (U: ${uv.u.toFixed(3)}, V: ${uv.v.toFixed(3)}). Gib nun die Ingame X/Y ein:`;
+            } else {
+              calDesc.textContent = `Punkt 2 gewählt (U: ${uv.u.toFixed(3)}, V: ${uv.v.toFixed(3)}). Gib nun die Ingame X/Y ein:`;
+            }
+            return;
+          }
+
+          // Normaler Klick
           const ing = uvToIngame(uv.u, uv.v);
           xInput.value = Math.round(ing.x);
           yInput.value = Math.round(ing.y);
           placeMarkerIngame(ing.x, ing.y, true);
+        });
+
+        calSubmitBtn.addEventListener("click", () => {
+          const xVal = Number(calX.value);
+          const yVal = Number(calY.value);
+          if(!Number.isFinite(xVal) || !Number.isFinite(yVal)) return alert("Bitte gültige Zahlen eingeben!");
+
+          if(calState === 1) {
+            calPt1 = { u: clickedUV.u, v: clickedUV.v, x: xVal, y: yVal };
+            calState = 2;
+            calTitle.textContent = "Schritt 2: Klicke Punkt B auf der Karte";
+            calDesc.textContent = "Klicke nun auf einen zweiten, möglichst weit entfernten Punkt (z.B. unten rechts).";
+            calInputs.style.display = "none";
+            badgeText.textContent = "Kalibriere (Punkt 2)...";
+          } else if(calState === 2) {
+            const calPt2 = { u: clickedUV.u, v: clickedUV.v, x: xVal, y: yVal };
+            
+            // Berechnung der linearen Formel: u = aX * x + cX
+            const aX = (calPt2.u - calPt1.u) / (calPt2.x - calPt1.x);
+            const cX = calPt1.u - aX * calPt1.x;
+            const aY = (calPt2.v - calPt1.v) / (calPt2.y - calPt1.y);
+            const cY = calPt1.v - aY * calPt1.y;
+
+            FIXED_CAL[current.id] = { aX, cX, aY, cY };
+            localStorage.setItem("lc_custom_cal", JSON.stringify(FIXED_CAL));
+
+            calTitle.textContent = "Kalibrierung erfolgreich! 🎉";
+            calDesc.textContent = "Die neuen Werte wurden gespeichert.";
+            calInputs.style.display = "none";
+            calOutput.value = `"${current.id}": {"aX":${aX},"cX":${cX},"aY":${aY},"cY":${cY}}`;
+            
+            calState = 0;
+            calBtn.textContent = "🔧 Kalibrierung starten";
+            badgeDot.className = "dotSmall";
+            badgeText.textContent = "Kalibriert ✅";
+            pillInfo.textContent = "Kalibriert ✅";
+            applyMap(current);
+          }
         });
 
         setBtn.addEventListener("click", ()=>{
@@ -523,7 +646,7 @@
         window.addEventListener("resize", ()=>{
           if(current && savedMarkers[current.id]){
             const s = savedMarkers[current.id];
-            placeMarkerIngage(s.x, s.y, false);
+            placeMarkerIngame(s.x, s.y, false);
           }
         });
 
