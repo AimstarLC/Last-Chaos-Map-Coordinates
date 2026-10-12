@@ -220,13 +220,8 @@
         </div>
       </div>
 
-      <div class="tabs">
-        <button class="tab is-active" data-map="juno" type="button">Juno</button>
-        <button class="tab" data-map="dratan" type="button">Dratan</button>
-        <button class="tab" data-map="merak" type="button">Merak</button>
-        <button class="tab" data-map="egeha" type="button">Egeha</button>
-        <button class="tab" data-map="strayana" type="button">Strayana</button>
-        <button class="tab" data-map="bloodymir" type="button">Bloodymir</button>
+      <div class="tabs" id="tabsContainer">
+        <button class="tab is-active" type="button">Lade Maps…</button>
       </div>
     </header>
 
@@ -252,14 +247,14 @@
           </div>
 
           <div class="kv">
-            <div><span>Aktuelle Map</span><b id="uiMap">Juno</b></div>
+            <div><span>Aktuelle Map</span><b id="uiMap">—</b></div>
             <div><span>Hover</span><b id="uiHover">—</b></div>
             <div><span>Marker</span><b id="uiMarker">—</b></div>
           </div>
 
           <div class="badge">
             <span class="dotSmall"></span>
-            <span>Kalibriert (fest) – nur Repo-Owner kann ändern</span>
+            <span>Kalibriert (Standard-Fallback aktiv)</span>
           </div>
 
           <div class="status" id="status">Status: lade…</div>
@@ -269,12 +264,12 @@
       <section class="mapArea">
         <div class="card mapCard">
           <div class="mapHeader">
-            <div class="pill" id="pillName">Juno</div>
+            <div class="pill" id="pillName">—</div>
             <div class="pill soft" id="pillInfo">Kalibriert ✅</div>
           </div>
 
           <div class="mapWrap" id="mapWrap">
-            <img id="mapImg" alt="Map" src="./maps/juno.png" />
+            <img id="mapImg" alt="Map" src="" />
             <div class="lcHud" id="lcHud">—</div>
 
             <div class="marker" id="marker">
@@ -292,15 +287,11 @@
   <script>
     try {
       (() => {
-        const MAPS = [
-          { id:"juno",   name:"Juno",   file:"./maps/juno.png" },
-          { id:"dratan", name:"Dratan", file:"./maps/dratan.png" },
-          { id:"merak",  name:"Merak",  file:"./maps/merak.png" },
-          { id:"egeha",  name:"Egeha",  file:"./maps/egeha.png" },
-          { id:"strayana", name:"Strayana", file:"./maps/Strayana.png" },
-          { id:"bloodymir", name:"Bloodymir", file:"./maps/Bloodymir.png" }
-        ];
+        let maps = [];
+        let current = null;
+        let savedMarkers = {};
 
+        // Feste Kalibrierung. Dratan hat eigene Maße, alle anderen Standard-Maps nutzen Juno als Basis.
         const FIXED_CAL = {
           juno:   {"aX":0.0006544729542302356,"cX":-0.015447295423023477,"aY":0.000672498388834821,"cY":0.00939643803667456},
           dratan: {"aX":0.00033108796935888026,"cX":-0.02224839696256553,"aY":0.00034017239337204384,"cY":0.002140278056180389},
@@ -315,8 +306,7 @@
         const mapImg  = document.getElementById("mapImg");
         const marker  = document.getElementById("marker");
         const lcHud   = document.getElementById("lcHud");
-
-        const tabs = Array.from(document.querySelectorAll(".tab"));
+        const tabsContainer = document.getElementById("tabsContainer");
 
         const xInput = document.getElementById("xInput");
         const yInput = document.getElementById("yInput");
@@ -329,16 +319,22 @@
 
         const pillName = document.getElementById("pillName");
         const pillInfo = document.getElementById("pillInfo");
-        const mapFooter= document.getElementById("mapFooter");
-
-        let current = MAPS[0];
-        const savedMarkers = {};
+        const mapFooter = document.getElementById("mapFooter");
 
         const clamp = (n,min,max)=>Math.max(min, Math.min(max,n));
         const fmtGame = (x,y)=>`${Math.round(x)}, ${Math.round(y)}`;
 
-        function setActiveTab(id){
-          tabs.forEach(b => b.classList.toggle("is-active", b.dataset.map === id));
+        function renderTabs(){
+          tabsContainer.innerHTML = "";
+          maps.forEach(m => {
+            const btn = document.createElement("button");
+            btn.className = "tab" + (current && current.id === m.id ? " is-active" : "");
+            btn.dataset.map = m.id;
+            btn.type = "button";
+            btn.textContent = m.name;
+            btn.addEventListener("click", () => applyMap(m));
+            tabsContainer.appendChild(btn);
+          });
         }
 
         function getRenderedImageMetrics() {
@@ -379,7 +375,11 @@
         }
 
         function getCal(mapId){
-          const cal = FIXED_CAL[mapId];
+          let cal = FIXED_CAL[mapId];
+          // Wenn keine spezifische Kalibrierung existiert und es nicht Dratan ist, nutze Juno als Standard!
+          if(!cal && mapId !== 'dratan') {
+            cal = FIXED_CAL['juno'];
+          }
           if(!cal) return null;
           if(!isFinite(cal.aX) || !isFinite(cal.cX) || !isFinite(cal.aY) || !isFinite(cal.cY)) return null;
           if(cal.aX === 0 || cal.aY === 0) return null;
@@ -388,18 +388,18 @@
 
         function uvToIngame(u,v){
           const cal = getCal(current.id);
+          const maxSize = current?.size || 1500;
           if(!cal){
-            const max = 1500;
-            return { x:u*max, y:v*max };
+            return { x: u * maxSize, y: v * maxSize };
           }
           return { x: (u - cal.cX) / cal.aX, y: (v - cal.cY) / cal.aY };
         }
 
         function ingameToUV(x,y){
           const cal = getCal(current.id);
+          const maxSize = current?.size || 1500;
           if(!cal){
-            const max = 1500;
-            return { u: x/max, v: y/max };
+            return { u: x / maxSize, v: y / maxSize };
           }
           return { u: cal.aX * x + cal.cX, v: cal.aY * y + cal.cY };
         }
@@ -415,46 +415,47 @@
           marker.style.display = "block";
 
           uiMarker.textContent = `X: ${Math.round(x)} | Y: ${Math.round(y)}`;
-          if(save) savedMarkers[current.id] = { x: Number(x), y: Number(y) };
+          if(save && current) savedMarkers[current.id] = { x: Number(x), y: Number(y) };
         }
 
         function clearMarker(save=true){
           marker.style.display = "none";
           uiMarker.textContent = "—";
-          if(save) delete savedMarkers[current.id];
-        }
-
-        function updatePillInfo(){
-          pillInfo.textContent = "Kalibriert ✅";
+          if(save && current) delete savedMarkers[current.id];
         }
 
         function applyMap(m){
           current = m;
-          setActiveTab(m.id);
+          renderTabs();
           uiMap.textContent = m.name;
           pillName.textContent = m.name;
-          updatePillInfo();
+          pillInfo.textContent = "Kalibriert ✅";
 
           uiHover.textContent = "—";
           lcHud.textContent = "—";
-          mapFooter.textContent = "Klick setzt Marker • Hover zeigt Ingame Koordinaten";
+          mapFooter.textContent = `0,0 oben links • ${m.size},${m.size} unten rechts`;
 
-          const url = m.file + "?v=" + Date.now();
+          xInput.min = 0; xInput.max = m.size;
+          yInput.min = 0; yInput.max = m.size;
+
+          const url = "maps/" + m.file + "?v=" + Date.now();
           setStatus("lade Bild: " + url);
 
           mapImg.onload = () => {
             setStatus("Bild geladen ✅ (" + m.name + ")");
             const s = savedMarkers[m.id];
             if(s) placeMarkerIngame(s.x, s.y, false);
+            else clearMarker(false);
           };
-          mapImg.onerror = () => setStatus("Bild FEHLT ❌: " + m.file);
+          mapImg.onerror = () => setStatus("Bild FEHLT ❌: maps/" + m.file);
 
-          mapImg.src = url;
+          mapImg.src = m.file.startsWith("./") ? m.file : "./maps/" + m.file;
 
           const s = savedMarkers[m.id];
           if(s){
             xInput.value = s.x;
             yInput.value = s.y;
+            placeMarkerIngame(s.x, s.y, false);
           } else {
             xInput.value = "";
             yInput.value = "";
@@ -462,15 +463,20 @@
           }
         }
 
-        tabs.forEach(btn=>{
-          btn.addEventListener("click", ()=>{
-            const id = btn.dataset.map;
-            const m = MAPS.find(mm=>mm.id===id);
-            if(m) applyMap(m);
-          });
-        });
+        async function init(){
+          setStatus("lade maps.json...");
+          const res = await fetch("./maps/maps.json?v=" + Date.now());
+          if(!res.ok) throw new Error("maps.json konnte nicht geladen werden (HTTP " + res.status + ")");
+          maps = await res.json();
+          if(!maps.length) throw new Error("maps.json ist leer");
+
+          current = maps[0];
+          applyMap(current);
+          setStatus("Bereit ✅");
+        }
 
         mapWrap.addEventListener("mousemove", (e)=>{
+          if(!current) return;
           const uv = mouseToUV(e.clientX, e.clientY);
           if(!uv.inside){
             uiHover.textContent="—";
@@ -488,6 +494,7 @@
         });
 
         mapWrap.addEventListener("click", (e)=>{
+          if(!current) return;
           const uv = mouseToUV(e.clientX, e.clientY);
           if(!uv.inside) return;
           const ing = uvToIngame(uv.u, uv.v);
@@ -497,6 +504,7 @@
         });
 
         setBtn.addEventListener("click", ()=>{
+          if(!current) return;
           const x = Number(xInput.value);
           const y = Number(yInput.value);
           if(!Number.isFinite(x) || !Number.isFinite(y)) return;
@@ -513,12 +521,16 @@
         });
 
         window.addEventListener("resize", ()=>{
-          const s = savedMarkers[current.id];
-          if(s) placeMarkerIngame(s.x, s.y, false);
+          if(current && savedMarkers[current.id]){
+            const s = savedMarkers[current.id];
+            placeMarkerIngage(s.x, s.y, false);
+          }
         });
 
-        setStatus("JS läuft ✅ – initialisiere…");
-        applyMap(MAPS[0]);
+        init().catch(err => {
+          setStatus("FEHLER: " + err.message);
+          console.error(err);
+        });
 
       })();
     } catch (err) {
