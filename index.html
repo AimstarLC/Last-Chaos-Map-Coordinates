@@ -225,6 +225,8 @@
         <button class="tab" data-map="dratan" type="button">Dratan</button>
         <button class="tab" data-map="merak" type="button">Merak</button>
         <button class="tab" data-map="egeha" type="button">Egeha</button>
+        <button class="tab" data-map="strayana" type="button">Strayana</button>
+        <button class="tab" data-map="bloodymir" type="button">Bloodymir</button>
       </div>
     </header>
 
@@ -293,7 +295,9 @@
         { id:"juno",   name:"Juno",   file:"./maps/juno.png" },
         { id:"dratan", name:"Dratan", file:"./maps/dratan.png" },
         { id:"merak",  name:"Merak",  file:"./maps/merak.png" },
-        { id:"egeha",  name:"Egeha",  file:"./maps/egeha.png" }
+        { id:"egeha",  name:"Egeha",  file:"./maps/egeha.png" },
+        { id:"strayana", name:"Strayana", file:"./maps/Strayana.png" },
+        { id:"bloodymir", name:"Bloodymir", file:"./maps/Bloodymir.png" }
       ];
 
       // FESTE KALIBRIERUNG (ALLE 4 EINGETRAGEN)
@@ -331,7 +335,7 @@
       const savedMarkers = {}; // Marker pro Map im aktuellen Browser (nicht global)
 
       const clamp = (n,min,max)=>Math.max(min, Math.min(max,n));
-      const fmtGame = (x,y)=>`${Math.round(x)}, ${Math.round(y)}`;
+      const fmtGame = (x,y)=>`${Math.round(x)},${Math.round(y)}`;
 
       function setActiveTab(id){
         tabs.forEach(b => b.classList.toggle("is-active", b.dataset.map === id));
@@ -411,7 +415,7 @@
         marker.style.top  = `${py}px`;
         marker.style.display = "block";
 
-        uiMarker.textContent = `X: ${Math.round(x)} | Y: ${Math.round(y)}`;
+        uiMarker.textContent = `X: ${Math.round(x)} \vert{} Y:${Math.round(y)}`;
         if(save) savedMarkers[current.id] = { x: Number(x), y: Number(y) };
       }
 
@@ -475,48 +479,4 @@
           return;
         }
         const ing = uvToIngame(uv.u, uv.v);
-        uiHover.textContent = `X: ${Math.round(ing.x)} | Y: ${Math.round(ing.y)}`;
-        lcHud.textContent = fmtGame(ing.x, ing.y);
-      });
-
-      mapWrap.addEventListener("mouseleave", ()=>{
-        uiHover.textContent="—";
-        lcHud.textContent="—";
-      });
-
-      mapWrap.addEventListener("click", (e)=>{
-        const uv = mouseToUV(e.clientX, e.clientY);
-        if(!uv.inside) return;
-        const ing = uvToIngame(uv.u, uv.v);
-        xInput.value = Math.round(ing.x);
-        yInput.value = Math.round(ing.y);
-        placeMarkerIngame(ing.x, ing.y, true);
-      });
-
-      setBtn.addEventListener("click", ()=>{
-        const x = Number(xInput.value);
-        const y = Number(yInput.value);
-        if(!Number.isFinite(x) || !Number.isFinite(y)) return;
-        placeMarkerIngame(x, y, true);
-      });
-
-      clearBtn.addEventListener("click", ()=>{
-        clearMarker(true);
-        xInput.value=""; yInput.value="";
-      });
-
-      [xInput,yInput].forEach(inp=>{
-        inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter") setBtn.click(); });
-      });
-
-      window.addEventListener("resize", ()=>{
-        const s = savedMarkers[current.id];
-        if(s) placeMarkerIngame(s.x, s.y, false);
-      });
-
-      setStatus("JS läuft ✅ – initialisiere…");
-      applyMap(MAPS[0]);
-    })();
-  </script>
-</body>
-</html>
+        uiHover.textContent = `X: ${Math.round(ing.x)} | Y:
